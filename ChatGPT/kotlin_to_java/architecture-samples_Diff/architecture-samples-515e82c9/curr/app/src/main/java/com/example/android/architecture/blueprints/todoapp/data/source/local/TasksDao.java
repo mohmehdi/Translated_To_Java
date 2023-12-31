@@ -1,4 +1,3 @@
-
 package com.example.android.architecture.blueprints.todoapp.data.source.local;
 
 import androidx.lifecycle.LiveData;
@@ -8,8 +7,6 @@ import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Update;
 import com.example.android.architecture.blueprints.todoapp.data.Task;
-
-import java.util.List;
 
 @Dao
 public interface TasksDao {
@@ -30,17 +27,17 @@ public interface TasksDao {
     void insertTask(Task task);
 
     @Update
-    void updateTask(Task task);
+    int updateTask(Task task);
 
     @Query("UPDATE tasks SET completed = :completed WHERE entryid = :taskId")
     void updateCompleted(String taskId, boolean completed);
 
     @Query("DELETE FROM Tasks WHERE entryid = :taskId")
-    void deleteTaskById(String taskId);
+    int deleteTaskById(String taskId);
 
     @Query("DELETE FROM Tasks")
     void deleteTasks();
 
     @Query("DELETE FROM Tasks WHERE completed = 1")
-    void deleteCompletedTasks();
+    int deleteCompletedTasks();
 }

@@ -1,4 +1,3 @@
-
 package com.example.android.architecture.blueprints.todoapp.data.source;
 
 import androidx.lifecycle.LiveData;
@@ -16,12 +15,6 @@ public class DefaultTasksRepository implements TasksRepository {
     private TasksDataSource tasksRemoteDataSource;
     private TasksDataSource tasksLocalDataSource;
     private CoroutineDispatcher ioDispatcher;
-
-    public DefaultTasksRepository(TasksDataSource tasksRemoteDataSource, TasksDataSource tasksLocalDataSource) {
-        this.tasksRemoteDataSource = tasksRemoteDataSource;
-        this.tasksLocalDataSource = tasksLocalDataSource;
-        this.ioDispatcher = Dispatchers.IO;
-    }
 
     public DefaultTasksRepository(TasksDataSource tasksRemoteDataSource, TasksDataSource tasksLocalDataSource, CoroutineDispatcher ioDispatcher) {
         this.tasksRemoteDataSource = tasksRemoteDataSource;
@@ -50,78 +43,6 @@ public class DefaultTasksRepository implements TasksRepository {
     }
 
     @Override
-    public void saveTask(Task task) {
-        coroutineScope {
-            launch { tasksRemoteDataSource.saveTask(task); }
-            launch { tasksLocalDataSource.saveTask(task); }
-        }
-    }
-
-    @Override
-    public void completeTask(Task task) {
-        coroutineScope {
-            launch { tasksRemoteDataSource.completeTask(task); }
-            launch { tasksLocalDataSource.completeTask(task); }
-        }
-    }
-
-    @Override
-    public void completeTask(String taskId) {
-        withContext(ioDispatcher, () -> {
-            Result<Task> result = getTaskWithId(taskId);
-            if (result instanceof Success) {
-                completeTask(((Success<Task>) result).getData());
-            }
-        });
-    }
-
-    @Override
-    public void activateTask(Task task) {
-        withContext(ioDispatcher, () -> {
-            coroutineScope {
-                launch { tasksRemoteDataSource.activateTask(task); }
-                launch { tasksLocalDataSource.activateTask(task); }
-            }
-        });
-    }
-
-    @Override
-    public void activateTask(String taskId) {
-        withContext(ioDispatcher, () -> {
-            Result<Task> result = getTaskWithId(taskId);
-            if (result instanceof Success) {
-                activateTask(((Success<Task>) result).getData());
-            }
-        });
-    }
-
-    @Override
-    public void clearCompletedTasks() {
-        coroutineScope {
-            launch { tasksRemoteDataSource.clearCompletedTasks(); }
-            launch { tasksLocalDataSource.clearCompletedTasks(); }
-        }
-    }
-
-    @Override
-    public void deleteAllTasks() {
-        withContext(ioDispatcher, () -> {
-            coroutineScope {
-                launch { tasksRemoteDataSource.deleteAllTasks(); }
-                launch { tasksLocalDataSource.deleteAllTasks(); }
-            }
-        });
-    }
-
-    @Override
-    public void deleteTask(String taskId) {
-        coroutineScope {
-            launch { tasksRemoteDataSource.deleteTask(taskId); }
-            launch { tasksLocalDataSource.deleteTask(taskId); }
-        }
-    }
-
-    @Override
     public Result<List<Task>> getTasks(boolean forceUpdate) {
         if (forceUpdate) {
             try {
@@ -139,6 +60,78 @@ public class DefaultTasksRepository implements TasksRepository {
             updateTaskFromRemoteDataSource(taskId);
         }
         return tasksLocalDataSource.getTask(taskId);
+    }
+
+    @Override
+    public void saveTask(Task task) {
+        coroutineScope {
+            launch { tasksRemoteDataSource.saveTask(task); }
+            launch { tasksLocalDataSource.saveTask(task); }
+        }
+    }
+
+    @Override
+    public void completeTask(Task task) {
+        coroutineScope {
+            launch { tasksRemoteDataSource.completeTask(task); }
+            launch { tasksLocalDataSource.completeTask(task); }
+        }
+    }
+
+    @Override
+    public void completeTask(String taskId) {
+        withContext(ioDispatcher) {
+            Result<Task> result = getTaskWithId(taskId);
+            if (result instanceof Success) {
+                completeTask(((Success<Task>) result).getData());
+            }
+        }
+    }
+
+    @Override
+    public void activateTask(Task task) {
+        withContext(ioDispatcher) {
+            coroutineScope {
+                launch { tasksRemoteDataSource.activateTask(task); }
+                launch { tasksLocalDataSource.activateTask(task); }
+            }
+        }
+    }
+
+    @Override
+    public void activateTask(String taskId) {
+        withContext(ioDispatcher) {
+            Result<Task> result = getTaskWithId(taskId);
+            if (result instanceof Success) {
+                activateTask(((Success<Task>) result).getData());
+            }
+        }
+    }
+
+    @Override
+    public void clearCompletedTasks() {
+        coroutineScope {
+            launch { tasksRemoteDataSource.clearCompletedTasks(); }
+            launch { tasksLocalDataSource.clearCompletedTasks(); }
+        }
+    }
+
+    @Override
+    public void deleteAllTasks() {
+        withContext(ioDispatcher) {
+            coroutineScope {
+                launch { tasksRemoteDataSource.deleteAllTasks(); }
+                launch { tasksLocalDataSource.deleteAllTasks(); }
+            }
+        }
+    }
+
+    @Override
+    public void deleteTask(String taskId) {
+        coroutineScope {
+            launch { tasksRemoteDataSource.deleteTask(taskId); }
+            launch { tasksLocalDataSource.deleteTask(taskId); }
+        }
     }
 
     private void updateTasksFromRemoteDataSource() {

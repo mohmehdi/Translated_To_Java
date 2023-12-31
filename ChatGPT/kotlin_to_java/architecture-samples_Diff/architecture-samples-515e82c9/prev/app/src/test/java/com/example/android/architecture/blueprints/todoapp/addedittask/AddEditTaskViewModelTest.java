@@ -1,20 +1,17 @@
-
 package com.example.android.architecture.blueprints.todoapp.addedittask;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
+import com.example.android.architecture.blueprints.todoapp.LiveDataTestUtil;
 import com.example.android.architecture.blueprints.todoapp.MainCoroutineRule;
-import com.example.android.architecture.blueprints.todoapp.R.string;
+import com.example.android.architecture.blueprints.todoapp.R;
 import com.example.android.architecture.blueprints.todoapp.assertSnackbarMessage;
-import com.example.android.architecture.blueprints.todoapp.awaitNextValue;
 import com.example.android.architecture.blueprints.todoapp.data.Task;
 import com.example.android.architecture.blueprints.todoapp.data.source.FakeRepository;
 import com.google.common.truth.Truth;
-
+import kotlinx.coroutines.ExperimentalCoroutinesApi;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import kotlinx.coroutines.ExperimentalCoroutinesApi;
 
 @ExperimentalCoroutinesApi
 public class AddEditTaskViewModelTest {
@@ -22,7 +19,6 @@ public class AddEditTaskViewModelTest {
     private AddEditTaskViewModel addEditTaskViewModel;
     private FakeRepository tasksRepository;
 
-    @ExperimentalCoroutinesApi
     @Rule
     public MainCoroutineRule mainCoroutineRule = new MainCoroutineRule();
 
@@ -55,18 +51,18 @@ public class AddEditTaskViewModelTest {
     public void loadTasks_loading() {
         mainCoroutineRule.pauseDispatcher();
         addEditTaskViewModel.start(task.getId());
-        Truth.assertThat(addEditTaskViewModel.getDataLoading().awaitNextValue()).isTrue();
+        Truth.assertThat(LiveDataTestUtil.getValue(addEditTaskViewModel.getDataLoading())).isTrue();
         mainCoroutineRule.resumeDispatcher();
-        Truth.assertThat(addEditTaskViewModel.getDataLoading().awaitNextValue()).isFalse();
+        Truth.assertThat(LiveDataTestUtil.getValue(addEditTaskViewModel.getDataLoading())).isFalse();
     }
 
     @Test
     public void loadTasks_taskShown() {
         tasksRepository.addTasks(task);
         addEditTaskViewModel.start(task.getId());
-        Truth.assertThat(addEditTaskViewModel.getTitle().awaitNextValue()).isEqualTo(task.getTitle());
-        Truth.assertThat(addEditTaskViewModel.getDescription().awaitNextValue()).isEqualTo(task.getDescription());
-        Truth.assertThat(addEditTaskViewModel.getDataLoading().awaitNextValue()).isFalse();
+        Truth.assertThat(LiveDataTestUtil.getValue(addEditTaskViewModel.getTitle())).isEqualTo(task.getTitle());
+        Truth.assertThat(LiveDataTestUtil.getValue(addEditTaskViewModel.getDescription())).isEqualTo(task.getDescription());
+        Truth.assertThat(LiveDataTestUtil.getValue(addEditTaskViewModel.getDataLoading())).isFalse();
     }
 
     @Test
@@ -103,6 +99,6 @@ public class AddEditTaskViewModelTest {
         addEditTaskViewModel.getTitle().setValue(title);
         addEditTaskViewModel.getDescription().setValue(description);
         addEditTaskViewModel.saveTask();
-        assertSnackbarMessage(addEditTaskViewModel.getSnackbarMessage(), string.empty_task_message);
+        assertSnackbarMessage(addEditTaskViewModel.getSnackbarMessage(), R.string.empty_task_message);
     }
 }

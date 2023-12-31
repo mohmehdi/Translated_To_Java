@@ -1,22 +1,19 @@
-
 package com.example.android.architecture.blueprints.todoapp.tasks;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
+import com.example.android.architecture.blueprints.todoapp.LiveDataTestUtil;
 import com.example.android.architecture.blueprints.todoapp.MainCoroutineRule;
 import com.example.android.architecture.blueprints.todoapp.R;
 import com.example.android.architecture.blueprints.todoapp.assertLiveDataEventTriggered;
 import com.example.android.architecture.blueprints.todoapp.assertSnackbarMessage;
-import com.example.android.architecture.blueprints.todoapp.awaitNextValue;
 import com.example.android.architecture.blueprints.todoapp.data.Task;
 import com.example.android.architecture.blueprints.todoapp.data.source.FakeRepository;
 import com.google.common.truth.Truth;
-
+import kotlinx.coroutines.ExperimentalCoroutinesApi;
+import kotlinx.coroutines.test.runBlockingTest;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import kotlinx.coroutines.ExperimentalCoroutinesApi;
-import kotlinx.coroutines.test.runBlockingTest;
 
 @ExperimentalCoroutinesApi
 public class TasksViewModelTest {
@@ -24,7 +21,6 @@ public class TasksViewModelTest {
     private TasksViewModel tasksViewModel;
     private FakeRepository tasksRepository;
 
-    @ExperimentalCoroutinesApi
     @Rule
     public MainCoroutineRule mainCoroutineRule = new MainCoroutineRule();
 
@@ -50,15 +46,13 @@ public class TasksViewModelTest {
 
         tasksViewModel.loadTasks(true);
 
-        tasksViewModel.getItems().observeForever(items -> {});
-
-        Truth.assertThat(tasksViewModel.getDataLoading().awaitNextValue()).isTrue();
+        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getDataLoading())).isTrue();
 
         mainCoroutineRule.resumeDispatcher();
 
-        Truth.assertThat(tasksViewModel.getDataLoading().awaitNextValue()).isFalse();
+        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getDataLoading())).isFalse();
 
-        Truth.assertThat(tasksViewModel.getItems().awaitNextValue()).hasSize(3);
+        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getItems())).hasSize(3);
     }
 
     @Test
@@ -67,11 +61,9 @@ public class TasksViewModelTest {
 
         tasksViewModel.loadTasks(true);
 
-        tasksViewModel.getItems().observeForever(items -> {});
+        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getDataLoading())).isFalse();
 
-        Truth.assertThat(tasksViewModel.getDataLoading().awaitNextValue()).isFalse();
-
-        Truth.assertThat(tasksViewModel.getItems().awaitNextValue()).hasSize(1);
+        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getItems())).hasSize(1);
     }
 
     @Test
@@ -80,11 +72,9 @@ public class TasksViewModelTest {
 
         tasksViewModel.loadTasks(true);
 
-        tasksViewModel.getItems().observeForever(items -> {});
+        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getDataLoading())).isFalse();
 
-        Truth.assertThat(tasksViewModel.getDataLoading().awaitNextValue()).isFalse();
-
-        Truth.assertThat(tasksViewModel.getItems().awaitNextValue()).hasSize(2);
+        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getItems())).hasSize(2);
     }
 
     @Test
@@ -93,11 +83,9 @@ public class TasksViewModelTest {
 
         tasksViewModel.loadTasks(true);
 
-        tasksViewModel.getItems().observeForever(items -> {});
+        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getDataLoading())).isFalse();
 
-        Truth.assertThat(tasksViewModel.getDataLoading().awaitNextValue()).isFalse();
-
-        Truth.assertThat(tasksViewModel.getItems().awaitNextValue()).isEmpty();
+        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getItems())).isEmpty();
 
         assertSnackbarMessage(tasksViewModel.getSnackbarMessage(), R.string.loading_tasks_error);
     }
@@ -106,8 +94,8 @@ public class TasksViewModelTest {
     public void clickOnFab_showsAddTaskUi() {
         tasksViewModel.addNewTask();
 
-        LiveData<Event<Object>> newTaskEvent = tasksViewModel.getNewTaskEvent();
-        Truth.assertThat(newTaskEvent.awaitNextValue().getContentIfNotHandled()).isNotNull();
+        TaskEvent value = LiveDataTestUtil.getValue(tasksViewModel.getNewTaskEvent());
+        Truth.assertThat(value.getContentIfNotHandled()).isNotNull();
     }
 
     @Test
@@ -119,21 +107,19 @@ public class TasksViewModelTest {
     }
 
     @Test
-    public void clearCompletedTasks_clearsTasks() {
-        mainCoroutineRule.runBlockingTest(() -> {
-            tasksViewModel.clearCompletedTasks();
+    public void clearCompletedTasks_clearsTasks() throws InterruptedException {
+        tasksViewModel.clearCompletedTasks();
 
-            tasksViewModel.loadTasks(true);
+        tasksViewModel.loadTasks(true);
 
-            List<Task> allTasks = tasksViewModel.getItems().awaitNextValue();
-            List<Task> completedTasks = allTasks.stream().filter(Task::isCompleted).collect(Collectors.toList());
+        List<Task> allTasks = LiveDataTestUtil.getValue(tasksViewModel.getItems());
+        List<Task> completedTasks = allTasks.stream().filter(Task::isCompleted).collect(Collectors.toList());
 
-            Truth.assertThat(completedTasks).isEmpty();
+        Truth.assertThat(completedTasks).isEmpty();
 
-            Truth.assertThat(allTasks).hasSize(1);
+        Truth.assertThat(allTasks).hasSize(1);
 
-            assertSnackbarMessage(tasksViewModel.getSnackbarMessage(), R.string.completed_tasks_cleared);
-        });
+        assertSnackbarMessage(tasksViewModel.getSnackbarMessage(), R.string.completed_tasks_cleared);
     }
 
     @Test
@@ -185,6 +171,6 @@ public class TasksViewModelTest {
     public void getTasksAddViewVisible() {
         tasksViewModel.setFiltering(TasksFilterType.ALL_TASKS);
 
-        Truth.assertThat(tasksViewModel.getTasksAddViewVisible().awaitNextValue()).isTrue();
+        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getTasksAddViewVisible())).isTrue();
     }
 }

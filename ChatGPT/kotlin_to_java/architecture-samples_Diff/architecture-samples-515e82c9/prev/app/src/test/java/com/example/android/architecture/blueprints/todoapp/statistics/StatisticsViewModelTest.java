@@ -1,4 +1,3 @@
-
 package com.example.android.architecture.blueprints.todoapp.statistics;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
@@ -24,14 +23,14 @@ public class StatisticsViewModelTest {
 
     private StatisticsViewModel statisticsViewModel;
 
-    private FakeRepository tasksRepository;
+    private FakeRepository tasksRepository = new FakeRepository();
 
+    @ExperimentalCoroutinesApi
     @Rule
     public MainCoroutineRule mainCoroutineRule = new MainCoroutineRule();
 
     @Before
     public void setupStatisticsViewModel() {
-        tasksRepository = new FakeRepository();
         statisticsViewModel = new StatisticsViewModel(tasksRepository);
     }
 

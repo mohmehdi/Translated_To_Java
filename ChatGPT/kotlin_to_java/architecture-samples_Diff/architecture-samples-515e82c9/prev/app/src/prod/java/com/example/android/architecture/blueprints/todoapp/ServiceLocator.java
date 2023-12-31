@@ -1,4 +1,3 @@
-
 package com.example.android.architecture.blueprints.todoapp;
 
 import android.content.Context;
@@ -18,6 +17,10 @@ public class ServiceLocator {
     private static volatile TasksRepository tasksRepository = null;
 
     @VisibleForTesting
+    public static void setTasksRepository(TasksRepository repository) {
+        tasksRepository = repository;
+    }
+
     public static TasksRepository provideTasksRepository(Context context) {
         synchronized (lock) {
             if (tasksRepository != null) {
@@ -35,12 +38,10 @@ public class ServiceLocator {
         )
                 .build();
 
-        tasksRepository = new DefaultTasksRepository(
+        return new DefaultTasksRepository(
                 TasksRemoteDataSource.INSTANCE,
                 new TasksLocalDataSource(database.taskDao())
         );
-
-        return tasksRepository;
     }
 
     @VisibleForTesting

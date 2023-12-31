@@ -1,4 +1,3 @@
-
 package com.example.android.architecture.blueprints.todoapp.taskdetail;
 
 import androidx.annotation.StringRes;
@@ -15,9 +14,6 @@ import com.example.android.architecture.blueprints.todoapp.data.Result.Success;
 import com.example.android.architecture.blueprints.todoapp.data.Task;
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository;
 
-import java.util.Objects;
-
-import kotlin.Pair;
 import kotlinx.coroutines.launch;
 
 public class TaskDetailViewModel extends ViewModel {
@@ -25,14 +21,12 @@ public class TaskDetailViewModel extends ViewModel {
     private MutableLiveData<Pair<String, Boolean>> _params = new MutableLiveData<>();
 
     private LiveData<Task> _task = Transformations.switchMap(_params, (Pair<String, Boolean> params) -> {
-        if (params.getSecond()) {
-            _dataLoading.setValue(true);
+        if (params.second) {
             viewModelScope.launch(() -> {
                 tasksRepository.refreshTasks();
-                _dataLoading.setValue(false);
             });
         }
-        return tasksRepository.observeTask(params.getFirst()).switchMap(this::computeResult);
+        return tasksRepository.observeTask(params.first).switchMap(this::computeResult);
     });
 
     public LiveData<Task> task = _task;
@@ -49,16 +43,16 @@ public class TaskDetailViewModel extends ViewModel {
     private MutableLiveData<Event<Unit>> _deleteTaskCommand = new MutableLiveData<>();
     public LiveData<Event<Unit>> deleteTaskCommand = _deleteTaskCommand;
 
-    private MutableLiveData<Event<Integer>> _snackbarText = new MutableLiveData<>();
-    public LiveData<Event<Integer>> snackbarMessage = _snackbarText;
+    private MutableLiveData<Event<Int>> _snackbarText = new MutableLiveData<>();
+    public LiveData<Event<Int>> snackbarMessage = _snackbarText;
 
     public LiveData<Boolean> completed = Transformations.map(_task, (Task input) -> {
-        return input != null ? input.isCompleted() : false;
+        return input != null ? input.isCompleted : false;
     });
 
     public void deleteTask() {
         viewModelScope.launch(() -> {
-            String taskId = Objects.requireNonNull(_params.getValue()).getFirst();
+            String taskId = _params.getValue().first;
             if (taskId != null) {
                 tasksRepository.deleteTask(taskId);
                 _deleteTaskCommand.setValue(new Event<>(Unit.INSTANCE));
@@ -85,19 +79,25 @@ public class TaskDetailViewModel extends ViewModel {
         });
     }
 
-    public void start(String taskId) {
-        if (_dataLoading.getValue() != null && _dataLoading.getValue() && taskId.equals(Objects.requireNonNull(_params.getValue()).getFirst())) {
+    public void start(String taskId, boolean forceRefresh) {
+        if (_isDataAvailable.getValue() == true && !forceRefresh || _dataLoading.getValue() == true) {
             return;
         }
         if (taskId == null) {
             _isDataAvailable.setValue(false);
             return;
         }
-        _params.setValue(new Pair<>(taskId, false));
+
+        _dataLoading.setValue(true);
+
+        _params.setValue(new Pair<>(taskId, forceRefresh));
     }
 
     private LiveData<Task> computeResult(Result<Task> taskResult) {
+        _dataLoading.setValue(true);
+
         MutableLiveData<Task> result = new MutableLiveData<>();
+
         if (taskResult instanceof Success) {
             result.setValue(((Success<Task>) taskResult).getData());
             _isDataAvailable.setValue(true);
@@ -106,11 +106,13 @@ public class TaskDetailViewModel extends ViewModel {
             showSnackbarMessage(R.string.loading_tasks_error);
             _isDataAvailable.setValue(false);
         }
+
+        _dataLoading.setValue(false);
         return result;
     }
 
     public void refresh() {
-        _params.setValue(new Pair<>(_params.getValue().getFirst(), true));
+        _params.setValue(new Pair<>(_params.getValue().first, true));
     }
 
     private void showSnackbarMessage(@StringRes int message) {

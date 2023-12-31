@@ -1,9 +1,8 @@
-
 package com.example.android.architecture.blueprints.todoapp.tasks;
 
 import android.content.Context;
 import android.os.Bundle;
-import androidx.fragment.app.testing.FragmentScenario;
+import androidx.fragment.app.testing.launchFragmentInContainer;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.test.core.app.ActivityScenario;
@@ -18,7 +17,8 @@ import com.example.android.architecture.blueprints.todoapp.R;
 import com.example.android.architecture.blueprints.todoapp.ServiceLocator;
 import com.example.android.architecture.blueprints.todoapp.data.Task;
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository;
-import com.example.android.architecture.blueprints.todoapp.util.TestUtils;
+import com.example.android.architecture.blueprints.todoapp.util.deleteAllTasksBlocking;
+import com.example.android.architecture.blueprints.todoapp.util.saveTaskBlocking;
 import org.hamcrest.core.IsNot;
 import org.junit.After;
 import org.junit.Before;
@@ -38,19 +38,18 @@ public class TasksFragmentTest {
 
     @Before
     public void setup() {
-        Context context = ApplicationProvider.getApplicationContext();
-        repository = ServiceLocator.provideTasksRepository(context);
+        repository = ServiceLocator.provideTasksRepository(ApplicationProvider.getApplicationContext());
     }
 
     @After
     public void tearDown() {
-        TestUtils.deleteAllTasksBlocking(repository);
+        repository.deleteAllTasksBlocking();
     }
 
     @Test
     public void clickAddTaskButton_navigateToAddEditFragment() {
-        Bundle bundle = new Bundle();
-        FragmentScenario<TasksFragment> scenario = FragmentScenario.launchInContainer(TasksFragment.class, bundle, R.style.AppTheme);
+
+        launchFragmentInContainer(TasksFragment.class, new Bundle(), R.style.AppTheme);
         NavController navController = Mockito.mock(NavController.class);
         scenario.onFragment(fragment -> Navigation.setViewNavController(fragment.requireView(), navController));
 
@@ -64,18 +63,18 @@ public class TasksFragmentTest {
     @Test
     @MediumTest
     public void displayTask_whenRepositoryHasData() {
-        Context context = ApplicationProvider.getApplicationContext();
-        TasksRepository repository = ServiceLocator.provideTasksRepository(context);
-        TestUtils.saveTaskBlocking(repository, new Task("title", "description"));
 
-        FragmentScenario.launchInContainer(TasksFragment.class, null, R.style.AppTheme);
+        TasksRepository repository = ServiceLocator.provideTasksRepository(ApplicationProvider.getApplicationContext());
+        repository.saveTaskBlocking(new Task("title", "description"));
+
+        launchFragmentInContainer(TasksFragment.class, new Bundle(), R.style.AppTheme);
 
         Espresso.onView(ViewMatchers.withText("title")).check(ViewAssertions.matches(ViewMatchers.isDisplayed()));
     }
 
     @Test
     public void displayActiveTask() {
-        TestUtils.saveTaskBlocking(repository, new Task("TITLE1", "DESCRIPTION1"));
+        repository.saveTaskBlocking(new Task("TITLE1", "DESCRIPTION1"));
 
         ActivityScenario.launch(TasksActivity.class);
 
@@ -92,7 +91,7 @@ public class TasksFragmentTest {
 
     @Test
     public void displayCompletedTask() {
-        TestUtils.saveTaskBlocking(repository, new Task("TITLE1", "DESCRIPTION1", true));
+        repository.saveTaskBlocking(new Task("TITLE1", "DESCRIPTION1", true));
 
         ActivityScenario.launch(TasksActivity.class);
 
@@ -109,7 +108,7 @@ public class TasksFragmentTest {
 
     @Test
     public void deleteOneTask() {
-        TestUtils.saveTaskBlocking(repository, new Task("TITLE1", "DESCRIPTION1"));
+        repository.saveTaskBlocking(new Task("TITLE1", "DESCRIPTION1"));
 
         ActivityScenario.launch(TasksActivity.class);
 
@@ -124,8 +123,8 @@ public class TasksFragmentTest {
 
     @Test
     public void deleteOneOfTwoTasks() {
-        TestUtils.saveTaskBlocking(repository, new Task("TITLE1", "DESCRIPTION1"));
-        TestUtils.saveTaskBlocking(repository, new Task("TITLE2", "DESCRIPTION2"));
+        repository.saveTaskBlocking(new Task("TITLE1", "DESCRIPTION1"));
+        repository.saveTaskBlocking(new Task("TITLE2", "DESCRIPTION2"));
 
         ActivityScenario.launch(TasksActivity.class);
 

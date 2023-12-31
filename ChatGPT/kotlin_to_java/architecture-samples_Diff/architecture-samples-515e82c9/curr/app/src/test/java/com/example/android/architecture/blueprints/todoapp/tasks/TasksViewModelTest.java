@@ -1,41 +1,26 @@
-
 package com.example.android.architecture.blueprints.todoapp.tasks;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
-import com.example.android.architecture.blueprints.todoapp.LiveDataTestUtil;
 import com.example.android.architecture.blueprints.todoapp.MainCoroutineRule;
 import com.example.android.architecture.blueprints.todoapp.R;
 import com.example.android.architecture.blueprints.todoapp.assertLiveDataEventTriggered;
 import com.example.android.architecture.blueprints.todoapp.assertSnackbarMessage;
+import com.example.android.architecture.blueprints.todoapp.awaitNextValue;
 import com.example.android.architecture.blueprints.todoapp.data.Task;
 import com.example.android.architecture.blueprints.todoapp.data.source.FakeRepository;
 import com.google.common.truth.Truth;
-
+import kotlinx.coroutines.ExperimentalCoroutinesApi;
+import kotlinx.coroutines.test.runBlockingTest;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import java.util.List;
-
-import kotlin.jvm.JvmField;
-import kotlinx.coroutines.ExperimentalCoroutinesApi;
-import kotlinx.coroutines.test.runBlockingTest;
-
-import static com.example.android.architecture.blueprints.todoapp.tasks.TasksFilterType.ALL_TASKS;
-import static com.example.android.architecture.blueprints.todoapp.tasks.TasksFilterType.ACTIVE_TASKS;
-import static com.example.android.architecture.blueprints.todoapp.tasks.TasksFilterType.COMPLETED_TASKS;
-import static com.example.android.architecture.blueprints.todoapp.tasks.TasksViewModel.EDIT_RESULT_OK;
-import static com.example.android.architecture.blueprints.todoapp.tasks.TasksViewModel.ADD_EDIT_RESULT_OK;
-import static com.example.android.architecture.blueprints.todoapp.tasks.TasksViewModel.DELETE_RESULT_OK;
 
 @ExperimentalCoroutinesApi
 public class TasksViewModelTest {
 
     private TasksViewModel tasksViewModel;
-
     private FakeRepository tasksRepository;
 
-    @JvmField
     @Rule
     public MainCoroutineRule mainCoroutineRule = new MainCoroutineRule();
 
@@ -57,42 +42,45 @@ public class TasksViewModelTest {
     public void loadAllTasksFromRepository_loadingTogglesAndDataLoaded() {
         mainCoroutineRule.pauseDispatcher();
 
-        tasksViewModel.setFiltering(ALL_TASKS);
+        tasksViewModel.setFiltering(TasksFilterType.ALL_TASKS);
 
         tasksViewModel.loadTasks(true);
 
-        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getDataLoading())).isTrue();
+        tasksViewModel.getItems().observeForever(items -> {});
+
+        Truth.assertThat(tasksViewModel.getDataLoading().awaitNextValue()).isTrue();
 
         mainCoroutineRule.resumeDispatcher();
 
-        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getDataLoading())).isFalse();
+        Truth.assertThat(tasksViewModel.getDataLoading().awaitNextValue()).isFalse();
 
-        List<Task> tasks = LiveDataTestUtil.getValue(tasksViewModel.getItems());
-        Truth.assertThat(tasks).hasSize(3);
+        Truth.assertThat(tasksViewModel.getItems().awaitNextValue()).hasSize(3);
     }
 
     @Test
     public void loadActiveTasksFromRepositoryAndLoadIntoView() {
-        tasksViewModel.setFiltering(ACTIVE_TASKS);
+        tasksViewModel.setFiltering(TasksFilterType.ACTIVE_TASKS);
 
         tasksViewModel.loadTasks(true);
 
-        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getDataLoading())).isFalse();
+        tasksViewModel.getItems().observeForever(items -> {});
 
-        List<Task> tasks = LiveDataTestUtil.getValue(tasksViewModel.getItems());
-        Truth.assertThat(tasks).hasSize(1);
+        Truth.assertThat(tasksViewModel.getDataLoading().awaitNextValue()).isFalse();
+
+        Truth.assertThat(tasksViewModel.getItems().awaitNextValue()).hasSize(1);
     }
 
     @Test
     public void loadCompletedTasksFromRepositoryAndLoadIntoView() {
-        tasksViewModel.setFiltering(COMPLETED_TASKS);
+        tasksViewModel.setFiltering(TasksFilterType.COMPLETED_TASKS);
 
         tasksViewModel.loadTasks(true);
 
-        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getDataLoading())).isFalse();
+        tasksViewModel.getItems().observeForever(items -> {});
 
-        List<Task> tasks = LiveDataTestUtil.getValue(tasksViewModel.getItems());
-        Truth.assertThat(tasks).hasSize(2);
+        Truth.assertThat(tasksViewModel.getDataLoading().awaitNextValue()).isFalse();
+
+        Truth.assertThat(tasksViewModel.getItems().awaitNextValue()).hasSize(2);
     }
 
     @Test
@@ -101,10 +89,11 @@ public class TasksViewModelTest {
 
         tasksViewModel.loadTasks(true);
 
-        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getDataLoading())).isFalse();
+        tasksViewModel.getItems().observeForever(items -> {});
 
-        List<Task> tasks = LiveDataTestUtil.getValue(tasksViewModel.getItems());
-        Truth.assertThat(tasks).isEmpty();
+        Truth.assertThat(tasksViewModel.getDataLoading().awaitNextValue()).isFalse();
+
+        Truth.assertThat(tasksViewModel.getItems().awaitNextValue()).isEmpty();
 
         assertSnackbarMessage(tasksViewModel.getSnackbarMessage(), R.string.loading_tasks_error);
     }
@@ -113,8 +102,8 @@ public class TasksViewModelTest {
     public void clickOnFab_showsAddTaskUi() {
         tasksViewModel.addNewTask();
 
-        LiveDataTestUtil.Event<Task> value = LiveDataTestUtil.getValue(tasksViewModel.getNewTaskEvent());
-        Truth.assertThat(value.getContentIfNotHandled()).isNotNull();
+        LiveData<Event<Object>> newTaskEvent = tasksViewModel.getNewTaskEvent();
+        Truth.assertThat(newTaskEvent.awaitNextValue().getContentIfNotHandled()).isNotNull();
     }
 
     @Test
@@ -126,18 +115,21 @@ public class TasksViewModelTest {
     }
 
     @Test
-    public void clearCompletedTasks_clearsTasks() throws InterruptedException {
-        tasksViewModel.clearCompletedTasks();
+    public void clearCompletedTasks_clearsTasks() {
+        mainCoroutineRule.runBlockingTest(() -> {
+            tasksViewModel.clearCompletedTasks();
 
-        tasksViewModel.loadTasks(true);
+            tasksViewModel.loadTasks(true);
 
-        List<Task> allTasks = LiveDataTestUtil.getValue(tasksViewModel.getItems());
-        List<Task> completedTasks = allTasks.stream().filter(Task::isCompleted).collect(Collectors.toList());
+            List<Task> allTasks = tasksViewModel.getItems().awaitNextValue();
+            List<Task> completedTasks = allTasks.stream().filter(Task::isCompleted).collect(Collectors.toList());
 
-        Truth.assertThat(completedTasks).isEmpty();
-        Truth.assertThat(allTasks).hasSize(1);
+            Truth.assertThat(completedTasks).isEmpty();
 
-        assertSnackbarMessage(tasksViewModel.getSnackbarMessage(), R.string.completed_tasks_cleared);
+            Truth.assertThat(allTasks).hasSize(1);
+
+            assertSnackbarMessage(tasksViewModel.getSnackbarMessage(), R.string.completed_tasks_cleared);
+        });
     }
 
     @Test
@@ -187,8 +179,8 @@ public class TasksViewModelTest {
 
     @Test
     public void getTasksAddViewVisible() {
-        tasksViewModel.setFiltering(ALL_TASKS);
+        tasksViewModel.setFiltering(TasksFilterType.ALL_TASKS);
 
-        Truth.assertThat(LiveDataTestUtil.getValue(tasksViewModel.getTasksAddViewVisible())).isTrue();
+        Truth.assertThat(tasksViewModel.getTasksAddViewVisible().awaitNextValue()).isTrue();
     }
 }

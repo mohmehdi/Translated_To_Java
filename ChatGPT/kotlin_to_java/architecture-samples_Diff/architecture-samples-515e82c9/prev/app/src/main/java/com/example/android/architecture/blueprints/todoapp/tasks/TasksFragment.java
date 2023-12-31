@@ -1,4 +1,3 @@
-
 package com.example.android.architecture.blueprints.todoapp.tasks;
 
 import android.os.Bundle;
@@ -32,17 +31,14 @@ import timber.log.Timber;
 
 public class TasksFragment extends Fragment {
 
-    private TasksViewModel viewModel;
-    private TasksFragmentArgs args;
-    private TasksFragBinding viewDataBinding;
-    private TasksAdapter listAdapter;
+    private final ViewModelFactory viewModelFactory = ViewModelFactory.getInstance();
+    private final TasksViewModel viewModel = viewModelFactory.create(TasksViewModel.class);
 
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        viewModel = new ViewModelProvider(this, ViewModelFactory.getInstance()).get(TasksViewModel.class);
-        args = TasksFragmentArgs.fromBundle(getArguments());
-    }
+    private final TasksFragmentArgs args by navArgs();
+
+    private TasksFragBinding viewDataBinding;
+
+    private TasksAdapter listAdapter;
 
     @Nullable
     @Override
@@ -51,6 +47,17 @@ public class TasksFragment extends Fragment {
         viewDataBinding.setViewmodel(viewModel);
         setHasOptionsMenu(true);
         return viewDataBinding.getRoot();
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        setupSnackbar();
+        setupListAdapter();
+        setupRefreshLayout(viewDataBinding.getRefreshLayout(), viewDataBinding.getTasksList());
+        setupNavigation();
+        setupFab();
+        viewModel.loadTasks(true);
     }
 
     @Override
@@ -75,31 +82,9 @@ public class TasksFragment extends Fragment {
         }
     }
 
-    @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        viewDataBinding.setLifecycleOwner(getViewLifecycleOwner());
-        setupSnackbar();
-        setupListAdapter();
-        setupRefreshLayout(viewDataBinding.getRefreshLayout(), viewDataBinding.getTasksList());
-        setupNavigation();
-        setupFab();
-        viewModel.loadTasks(true);
-    }
-
     private void setupNavigation() {
-        viewModel.getOpenTaskEvent().observe(getViewLifecycleOwner(), new EventObserver<String>() {
-            @Override
-            public void onEvent(String taskId) {
-                openTaskDetails(taskId);
-            }
-        });
-        viewModel.getNewTaskEvent().observe(getViewLifecycleOwner(), new EventObserver<Boolean>() {
-            @Override
-            public void onEvent(Boolean newTaskEvent) {
-                navigateToAddNewTask();
-            }
-        });
+        viewModel.getOpenTaskEvent().observe(getViewLifecycleOwner(), new EventObserver<>(this::openTaskDetails));
+        viewModel.getNewTaskEvent().observe(getViewLifecycleOwner(), new EventObserver<>(ignored -> navigateToAddNewTask()));
     }
 
     private void setupSnackbar() {
@@ -118,17 +103,14 @@ public class TasksFragment extends Fragment {
         if (view != null) {
             PopupMenu popupMenu = new PopupMenu(requireContext(), view);
             popupMenu.inflate(R.menu.filter_tasks);
-            popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                @Override
-                public boolean onMenuItemClick(MenuItem item) {
-                    viewModel.setFiltering(
-                            item.getItemId() == R.id.active ? TasksFilterType.ACTIVE_TASKS :
-                                    item.getItemId() == R.id.completed ? TasksFilterType.COMPLETED_TASKS :
-                                            TasksFilterType.ALL_TASKS
-                    );
-                    viewModel.loadTasks(false);
-                    return true;
-                }
+            popupMenu.setOnMenuItemClickListener(item -> {
+                viewModel.setFiltering(
+                        item.getItemId() == R.id.active ? TasksFilterType.ACTIVE_TASKS :
+                                item.getItemId() == R.id.completed ? TasksFilterType.COMPLETED_TASKS :
+                                        TasksFilterType.ALL_TASKS
+                );
+                viewModel.loadTasks(false);
+                return true;
             });
             popupMenu.show();
         }
@@ -137,18 +119,13 @@ public class TasksFragment extends Fragment {
     private void setupFab() {
         FloatingActionButton fab = getActivity().findViewById(R.id.fab_add_task);
         if (fab != null) {
-            fab.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    navigateToAddNewTask();
-                }
-            });
+            fab.setOnClickListener(v -> navigateToAddNewTask());
         }
     }
 
     private void navigateToAddNewTask() {
-        NavDirections action = TasksFragmentDirections
-                .actionTasksFragmentToAddEditTaskFragment(
+        TasksFragmentDirections.ActionTasksFragmentToAddEditTaskFragment action =
+                TasksFragmentDirections.actionTasksFragmentToAddEditTaskFragment(
                         null,
                         getResources().getString(R.string.add_task)
                 );
@@ -156,7 +133,8 @@ public class TasksFragment extends Fragment {
     }
 
     private void openTaskDetails(String taskId) {
-        NavDirections action = TasksFragmentDirections.actionTasksFragmentToTaskDetailFragment(taskId);
+        TasksFragmentDirections.ActionTasksFragmentToTaskDetailFragment action =
+                TasksFragmentDirections.actionTasksFragmentToTaskDetailFragment(taskId);
         NavHostFragment.findNavController(this).navigate(action);
     }
 

@@ -1,4 +1,3 @@
-
 package com.example.android.architecture.blueprints.todoapp.tasks;
 
 import android.os.Bundle;
@@ -15,7 +14,7 @@ import androidx.appcompat.widget.PopupMenu;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.viewModels;
 import androidx.navigation.fragment.NavHostFragment;
-import androidx.navigation.fragment.NavHostFragmentArgs;
+import androidx.navigation.fragment.navArgs;
 
 import com.example.android.architecture.blueprints.todoapp.EventObserver;
 import com.example.android.architecture.blueprints.todoapp.R;
@@ -32,20 +31,14 @@ import timber.log.Timber;
 
 public class TasksFragment extends Fragment {
 
-    private TasksViewModel viewModel;
+    private final ViewModelFactory viewModelFactory = ViewModelFactory.getInstance();
+    private final TasksViewModel viewModel = viewModelFactory.create(TasksViewModel.class);
 
-    private TasksFragmentArgs args;
+    private final TasksFragmentArgs args by navArgs();
 
     private TasksFragBinding viewDataBinding;
 
     private TasksAdapter listAdapter;
-
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        viewModel = new ViewModelProvider(this, ViewModelFactory.getInstance()).get(TasksViewModel.class);
-        args = NavHostFragmentArgs.fromBundle(getArguments());
-    }
 
     @Nullable
     @Override
@@ -54,6 +47,17 @@ public class TasksFragment extends Fragment {
         viewDataBinding.setViewmodel(viewModel);
         setHasOptionsMenu(true);
         return viewDataBinding.getRoot();
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        viewDataBinding.setLifecycleOwner(getViewLifecycleOwner());
+        setupSnackbar();
+        setupListAdapter();
+        setupRefreshLayout(viewDataBinding.getRefreshLayout(), viewDataBinding.getTasksList());
+        setupNavigation();
+        setupFab();
     }
 
     @Override
@@ -78,18 +82,6 @@ public class TasksFragment extends Fragment {
         }
     }
 
-    @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-
-        viewDataBinding.setLifecycleOwner(getViewLifecycleOwner());
-        setupSnackbar();
-        setupListAdapter();
-        setupRefreshLayout(viewDataBinding.getRefreshLayout(), viewDataBinding.getTasksList());
-        setupNavigation();
-        setupFab();
-    }
-
     private void setupNavigation() {
         viewModel.getOpenTaskEvent().observe(getViewLifecycleOwner(), new EventObserver<String>() {
             @Override
@@ -99,7 +91,7 @@ public class TasksFragment extends Fragment {
         });
         viewModel.getNewTaskEvent().observe(getViewLifecycleOwner(), new EventObserver<Boolean>() {
             @Override
-            public void onEvent(Boolean newTaskEvent) {
+            public void onEvent(Boolean aBoolean) {
                 navigateToAddNewTask();
             }
         });
@@ -108,10 +100,11 @@ public class TasksFragment extends Fragment {
     private void setupSnackbar() {
         View view = getView();
         if (view != null) {
-            SnackbarUtilsKt.setupSnackbar(this, viewModel.getSnackbarMessage(), Snackbar.LENGTH_SHORT);
+            SnackbarUtilsKt.setupSnackbar(this, view, viewModel.getSnackbarMessage(), Snackbar.LENGTH_SHORT);
         }
         Bundle arguments = getArguments();
         if (arguments != null) {
+            TasksFragmentArgs args = TasksFragmentArgs.fromBundle(arguments);
             viewModel.showEditResultMessage(args.getUserMessage());
         }
     }
@@ -121,17 +114,13 @@ public class TasksFragment extends Fragment {
         if (view != null) {
             PopupMenu popupMenu = new PopupMenu(requireContext(), view);
             popupMenu.inflate(R.menu.filter_tasks);
-
-            popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                @Override
-                public boolean onMenuItemClick(MenuItem item) {
-                    viewModel.setFiltering(
-                            item.getItemId() == R.id.active ? TasksFilterType.ACTIVE_TASKS :
-                                    item.getItemId() == R.id.completed ? TasksFilterType.COMPLETED_TASKS :
-                                            TasksFilterType.ALL_TASKS
-                    );
-                    return true;
-                }
+            popupMenu.setOnMenuItemClickListener(item -> {
+                viewModel.setFiltering(
+                        item.getItemId() == R.id.active ? TasksFilterType.ACTIVE_TASKS :
+                                item.getItemId() == R.id.completed ? TasksFilterType.COMPLETED_TASKS :
+                                        TasksFilterType.ALL_TASKS
+                );
+                return true;
             });
             popupMenu.show();
         }
@@ -140,18 +129,13 @@ public class TasksFragment extends Fragment {
     private void setupFab() {
         FloatingActionButton fab = getActivity().findViewById(R.id.fab_add_task);
         if (fab != null) {
-            fab.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    navigateToAddNewTask();
-                }
-            });
+            fab.setOnClickListener(v -> navigateToAddNewTask());
         }
     }
 
     private void navigateToAddNewTask() {
-        NavDirections action = TasksFragmentDirections
-                .actionTasksFragmentToAddEditTaskFragment(
+        TasksFragmentDirections.ActionTasksFragmentToAddEditTaskFragment action =
+                TasksFragmentDirections.actionTasksFragmentToAddEditTaskFragment(
                         null,
                         getResources().getString(R.string.add_task)
                 );
@@ -159,7 +143,8 @@ public class TasksFragment extends Fragment {
     }
 
     private void openTaskDetails(String taskId) {
-        NavDirections action = TasksFragmentDirections.actionTasksFragmentToTaskDetailFragment(taskId);
+        TasksFragmentDirections.ActionTasksFragmentToTaskDetailFragment action =
+                TasksFragmentDirections.actionTasksFragmentToTaskDetailFragment(taskId);
         NavHostFragment.findNavController(this).navigate(action);
     }
 

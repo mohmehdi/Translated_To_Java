@@ -1,4 +1,3 @@
-
 package com.example.android.architecture.blueprints.todoapp.tasks;
 
 import androidx.annotation.DrawableRes;
@@ -28,9 +27,11 @@ public class TasksViewModel extends ViewModel {
 
     private LiveData<List<Task>> _items = Transformations.switchMap(_forceUpdate, forceUpdate -> {
         if (forceUpdate) {
-            viewModelScope.launch {
+            _dataLoading.setValue(true);
+            viewModelScope.launch(() -> {
                 tasksRepository.refreshTasks();
-            }
+                _dataLoading.setValue(false);
+            });
         }
         return tasksRepository.observeTasks().switchMap(this::filterTasks);
     });
@@ -65,7 +66,7 @@ public class TasksViewModel extends ViewModel {
     private MutableLiveData<Event<Unit>> _newTaskEvent = new MutableLiveData<>();
     public LiveData<Event<Unit>> newTaskEvent = _newTaskEvent;
 
-    private boolean resultMessageShown = true;
+    private boolean resultMessageShown = false;
 
     public LiveData<Boolean> empty = Transformations.map(_items, it -> it.isEmpty());
 
@@ -99,6 +100,7 @@ public class TasksViewModel extends ViewModel {
                 );
                 break;
         }
+        loadTasks(false);
     }
 
     private void setFilter(
@@ -112,15 +114,14 @@ public class TasksViewModel extends ViewModel {
     }
 
     public void clearCompletedTasks() {
-        viewModelScope.launch {
+        viewModelScope.launch(() -> {
             tasksRepository.clearCompletedTasks();
             showSnackbarMessage(R.string.completed_tasks_cleared);
-            loadTasks(false);
-        }
+        });
     }
 
     public void completeTask(Task task, boolean completed) {
-        viewModelScope.launch {
+        viewModelScope.launch(() -> {
             if (completed) {
                 tasksRepository.completeTask(task);
                 showSnackbarMessage(R.string.task_marked_complete);
@@ -128,8 +129,7 @@ public class TasksViewModel extends ViewModel {
                 tasksRepository.activateTask(task);
                 showSnackbarMessage(R.string.task_marked_active);
             }
-            loadTasks(false);
-        }
+        });
     }
 
     public void addNewTask() {
@@ -161,21 +161,17 @@ public class TasksViewModel extends ViewModel {
     }
 
     private LiveData<List<Task>> filterTasks(Result<List<Task>> tasksResult) {
-        _dataLoading.setValue(true);
         MutableLiveData<List<Task>> result = new MutableLiveData<>();
-
         if (tasksResult instanceof Success) {
             isDataLoadingError.setValue(false);
-            viewModelScope.launch {
-                result.setValue(filterItems(((Success<List<Task>>) tasksResult).getData(), currentFiltering));
-            }
+            viewModelScope.launch(() -> {
+                result.setValue(filterItems(tasksResult.getData(), currentFiltering));
+            });
         } else {
             result.setValue(new ArrayList<>());
             showSnackbarMessage(R.string.loading_tasks_error);
             isDataLoadingError.setValue(true);
         }
-
-        _dataLoading.setValue(false);
         return result;
     }
 

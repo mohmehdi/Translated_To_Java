@@ -1,4 +1,3 @@
-
 package com.example.android.architecture.blueprints.todoapp;
 
 import androidx.lifecycle.LiveData;
@@ -9,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 public class LiveDataTestUtil {
 
-    public static <T> T getValue(LiveData<T> liveData) throws InterruptedException {
+    public static <T> T getValue(LiveData<T> liveData) {
         final Object[] data = new Object[1];
         final CountDownLatch latch = new CountDownLatch(1);
         final Observer<T> observer = new Observer<T>() {
@@ -21,7 +20,11 @@ public class LiveDataTestUtil {
             }
         };
         liveData.observeForever(observer);
-        latch.await(2, TimeUnit.SECONDS);
+        try {
+            latch.await(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         return (T) data[0];
     }

@@ -1,4 +1,3 @@
-
 package com.example.android.architecture.blueprints.todoapp.taskdetail;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
@@ -23,7 +22,6 @@ public class TaskDetailViewModelTest {
     private TaskDetailViewModel taskDetailViewModel;
     private FakeRepository tasksRepository;
 
-    @ExperimentalCoroutinesApi
     @Rule
     public MainCoroutineRule mainCoroutineRule = new MainCoroutineRule();
 
@@ -101,7 +99,7 @@ public class TaskDetailViewModelTest {
     public void clickOnEditTask_SetsEvent() {
         taskDetailViewModel.editTask();
 
-        TaskDetailEvent value = taskDetailViewModel.getEditTaskCommand().awaitNextValue();
+        TaskDetailViewModel.Event value = taskDetailViewModel.getEditTaskCommand().awaitNextValue();
         Truth.assertThat(value.getContentIfNotHandled()).isNotNull();
     }
 

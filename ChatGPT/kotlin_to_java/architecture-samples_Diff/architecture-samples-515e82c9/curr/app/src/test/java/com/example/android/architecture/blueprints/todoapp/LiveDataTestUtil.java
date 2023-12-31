@@ -1,4 +1,3 @@
-
 package com.example.android.architecture.blueprints.todoapp;
 
 import androidx.annotation.VisibleForTesting;
@@ -9,10 +8,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-@VisibleForTesting(otherwise = VisibleForTesting.NONE)
-public class LiveDataUtils {
-
-    public static <T> T awaitNextValue(LiveData<T> liveData, long time, TimeUnit timeUnit) throws InterruptedException, TimeoutException {
+public class LiveDataTestUtil {
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    public static <T> T awaitNextValue(LiveData<T> liveData, long time, TimeUnit timeUnit) {
         T data = null;
         CountDownLatch latch = new CountDownLatch(1);
         Observer<T> observer = new Observer<T>() {
@@ -25,8 +23,12 @@ public class LiveDataUtils {
         };
         liveData.observeForever(observer);
 
-        if (!latch.await(time, timeUnit)) {
-            throw new TimeoutException("LiveData value was never set.");
+        try {
+            if (!latch.await(time, timeUnit)) {
+                throw new TimeoutException("LiveData value was never set.");
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
         return data;

@@ -1,4 +1,3 @@
-
 package com.example.android.architecture.blueprints.todoapp.statistics;
 
 import android.os.Bundle;
@@ -23,8 +22,8 @@ public class StatisticsFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         viewDataBinding = DataBindingUtil.inflate(
-            inflater, R.layout.statistics_frag, container,
-            false
+                inflater, R.layout.statistics_frag, container,
+                false
         );
         return viewDataBinding.getRoot();
     }
@@ -35,5 +34,6 @@ public class StatisticsFragment extends Fragment {
         viewDataBinding.setViewmodel(statisticsViewModel);
         viewDataBinding.setLifecycleOwner(this.getViewLifecycleOwner());
         this.setupRefreshLayout(viewDataBinding.getRefreshLayout());
+        statisticsViewModel.start();
     }
 }

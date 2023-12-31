@@ -1,4 +1,3 @@
-
 package com.example.android.architecture.blueprints.todoapp.statistics;
 
 import android.os.Bundle;
@@ -17,7 +16,7 @@ public class StatisticsFragment extends Fragment {
 
     private StatisticsFragBinding viewDataBinding;
 
-    private StatisticsViewModel statisticsViewModel;
+    private final StatisticsViewModel statisticsViewModel by viewModels<StatisticsViewModel> { getVmFactory() };
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -32,10 +31,8 @@ public class StatisticsFragment extends Fragment {
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        statisticsViewModel = viewModels(StatisticsViewModel.class, getVmFactory());
         viewDataBinding.setViewmodel(statisticsViewModel);
         viewDataBinding.setLifecycleOwner(this.getViewLifecycleOwner());
         this.setupRefreshLayout(viewDataBinding.getRefreshLayout());
-        statisticsViewModel.start();
     }
 }

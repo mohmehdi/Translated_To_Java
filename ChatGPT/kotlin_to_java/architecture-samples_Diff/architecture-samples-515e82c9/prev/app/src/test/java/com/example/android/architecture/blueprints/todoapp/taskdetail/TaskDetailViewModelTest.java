@@ -1,8 +1,6 @@
-
 package com.example.android.architecture.blueprints.todoapp.taskdetail;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
-
 import com.example.android.architecture.blueprints.todoapp.LiveDataTestUtil;
 import com.example.android.architecture.blueprints.todoapp.MainCoroutineRule;
 import com.example.android.architecture.blueprints.todoapp.R;
@@ -10,12 +8,10 @@ import com.example.android.architecture.blueprints.todoapp.assertSnackbarMessage
 import com.example.android.architecture.blueprints.todoapp.data.Task;
 import com.example.android.architecture.blueprints.todoapp.data.source.FakeRepository;
 import com.google.common.truth.Truth;
-
+import kotlinx.coroutines.ExperimentalCoroutinesApi;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import kotlinx.coroutines.ExperimentalCoroutinesApi;
 
 @ExperimentalCoroutinesApi
 public class TaskDetailViewModelTest {
@@ -23,7 +19,6 @@ public class TaskDetailViewModelTest {
     private TaskDetailViewModel taskDetailViewModel;
     private FakeRepository tasksRepository;
 
-    @ExperimentalCoroutinesApi
     @Rule
     public MainCoroutineRule mainCoroutineRule = new MainCoroutineRule();
 
@@ -85,7 +80,7 @@ public class TaskDetailViewModelTest {
 
     @Test
     public void updateSnackbar_nullValue() {
-        String snackbarText = LiveDataTestUtil.getValue(taskDetailViewModel.getSnackbarMessage());
+        String snackbarText = taskDetailViewModel.getSnackbarMessage().getValue();
 
         Truth.assertThat(snackbarText).isNull();
     }

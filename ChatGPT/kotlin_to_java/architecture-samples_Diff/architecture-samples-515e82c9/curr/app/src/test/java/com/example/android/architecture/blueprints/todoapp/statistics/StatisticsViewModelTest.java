@@ -1,8 +1,6 @@
-
 package com.example.android.architecture.blueprints.todoapp.statistics;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
-
 import com.example.android.architecture.blueprints.todoapp.FakeFailingTasksRemoteDataSource;
 import com.example.android.architecture.blueprints.todoapp.MainCoroutineRule;
 import com.example.android.architecture.blueprints.todoapp.awaitNextValue;
@@ -10,14 +8,12 @@ import com.example.android.architecture.blueprints.todoapp.data.Task;
 import com.example.android.architecture.blueprints.todoapp.data.source.DefaultTasksRepository;
 import com.example.android.architecture.blueprints.todoapp.data.source.FakeRepository;
 import com.google.common.truth.Truth;
-
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-
 import kotlinx.coroutines.Dispatchers;
 import kotlinx.coroutines.ExperimentalCoroutinesApi;
 import kotlinx.coroutines.test.runBlockingTest;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 
 @ExperimentalCoroutinesApi
 public class StatisticsViewModelTest {
@@ -27,14 +23,14 @@ public class StatisticsViewModelTest {
 
     private StatisticsViewModel statisticsViewModel;
 
-    private FakeRepository tasksRepository;
+    private FakeRepository tasksRepository = new FakeRepository();
 
+    @ExperimentalCoroutinesApi
     @Rule
     public MainCoroutineRule mainCoroutineRule = new MainCoroutineRule();
 
     @Before
     public void setupStatisticsViewModel() {
-        tasksRepository = new FakeRepository();
         statisticsViewModel = new StatisticsViewModel(tasksRepository);
     }
 

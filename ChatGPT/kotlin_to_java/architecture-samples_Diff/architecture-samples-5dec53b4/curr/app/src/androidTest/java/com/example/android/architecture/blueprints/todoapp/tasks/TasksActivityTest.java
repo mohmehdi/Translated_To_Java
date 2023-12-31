@@ -1,4 +1,3 @@
-
 package com.example.android.architecture.blueprints.todoapp.tasks;
 
 import androidx.test.annotation.UiThreadTest;
@@ -19,9 +18,11 @@ import com.example.android.architecture.blueprints.todoapp.ServiceLocator;
 import com.example.android.architecture.blueprints.todoapp.data.Task;
 import com.example.android.architecture.blueprints.todoapp.data.source.TasksRepository;
 import com.example.android.architecture.blueprints.todoapp.util.EspressoIdlingResource;
-import com.example.android.architecture.blueprints.todoapp.util.TestUtils;
+import com.example.android.architecture.blueprints.todoapp.util.deleteAllTasksBlocking;
+import com.example.android.architecture.blueprints.todoapp.util.saveTaskBlocking;
 
 import org.hamcrest.Matchers;
+import org.hamcrest.core.IsNot;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,8 +37,8 @@ public class TasksActivityTest {
     @UiThreadTest
     @Before
     public void resetState() {
-        repository = ServiceLocator.provideTasksRepository(ApplicationProvider.getApplicationContext());
-        TestUtils.deleteAllTasksBlocking(repository);
+        repository = ServiceLocator.provideTasksRepository(getApplicationContext());
+        repository.deleteAllTasksBlocking();
     }
 
     @Before
@@ -66,9 +67,9 @@ public class TasksActivityTest {
 
     @Test
     public void editTask() {
-        TestUtils.saveTaskBlocking(repository, new Task("TITLE1", "DESCRIPTION"));
+        repository.saveTaskBlocking(new Task("TITLE1", "DESCRIPTION"));
 
-        ActivityScenario.launch(TasksActivity.class);
+        ActivityScenario activityScenario = ActivityScenario.launch(TasksActivity.class);
 
         Espresso.onView(ViewMatchers.withText("TITLE1")).perform(ViewActions.click());
 
@@ -86,7 +87,7 @@ public class TasksActivityTest {
 
     @Test
     public void createOneTask_deleteTask() {
-        ActivityScenario.launch(TasksActivity.class);
+        ActivityScenario activityScenario = ActivityScenario.launch(TasksActivity.class);
 
         Espresso.onView(ViewMatchers.withId(R.id.fab_add_task)).perform(ViewActions.click());
         Espresso.onView(ViewMatchers.withId(R.id.add_task_title)).perform(ViewActions.typeText("TITLE1"));
@@ -104,7 +105,7 @@ public class TasksActivityTest {
 
     @Test
     public void createTwoTasks_deleteOneTask() {
-        ActivityScenario.launch(TasksActivity.class);
+        ActivityScenario activityScenario = ActivityScenario.launch(TasksActivity.class);
 
         Espresso.onView(ViewMatchers.withId(R.id.fab_add_task)).perform(ViewActions.click());
         Espresso.onView(ViewMatchers.withId(R.id.add_task_title)).perform(ViewActions.typeText("TITLE1"));
@@ -128,9 +129,9 @@ public class TasksActivityTest {
 
     @Test
     public void markTaskAsCompleteOnDetailScreen_taskIsCompleteInList() {
-        TestUtils.saveTaskBlocking(repository, new Task("TITLE1", "DESCRIPTION"));
+        repository.saveTaskBlocking(new Task("TITLE1", "DESCRIPTION"));
 
-        ActivityScenario.launch(TasksActivity.class);
+        ActivityScenario activityScenario = ActivityScenario.launch(TasksActivity.class);
 
         Espresso.onView(ViewMatchers.withText("TITLE1")).perform(ViewActions.click());
 
@@ -144,9 +145,9 @@ public class TasksActivityTest {
 
     @Test
     public void markTaskAsActiveOnDetailScreen_taskIsActiveInList() {
-        TestUtils.saveTaskBlocking(repository, new Task("TITLE1", "DESCRIPTION", true));
+        repository.saveTaskBlocking(new Task("TITLE1", "DESCRIPTION", true));
 
-        ActivityScenario.launch(TasksActivity.class);
+        ActivityScenario activityScenario = ActivityScenario.launch(TasksActivity.class);
 
         Espresso.onView(ViewMatchers.withText("TITLE1")).perform(ViewActions.click());
 
@@ -160,9 +161,9 @@ public class TasksActivityTest {
 
     @Test
     public void markTaskAsCompleteAndActiveOnDetailScreen_taskIsActiveInList() {
-        TestUtils.saveTaskBlocking(repository, new Task("TITLE1", "DESCRIPTION"));
+        repository.saveTaskBlocking(new Task("TITLE1", "DESCRIPTION"));
 
-        ActivityScenario.launch(TasksActivity.class);
+        ActivityScenario activityScenario = ActivityScenario.launch(TasksActivity.class);
 
         Espresso.onView(ViewMatchers.withText("TITLE1")).perform(ViewActions.click());
 
@@ -178,9 +179,9 @@ public class TasksActivityTest {
 
     @Test
     public void markTaskAsActiveAndCompleteOnDetailScreen_taskIsCompleteInList() {
-        TestUtils.saveTaskBlocking(repository, new Task("TITLE1", "DESCRIPTION", true));
+        repository.saveTaskBlocking(new Task("TITLE1", "DESCRIPTION", true));
 
-        ActivityScenario.launch(TasksActivity.class);
+        ActivityScenario activityScenario = ActivityScenario.launch(TasksActivity.class);
 
         Espresso.onView(ViewMatchers.withText("TITLE1")).perform(ViewActions.click());
 

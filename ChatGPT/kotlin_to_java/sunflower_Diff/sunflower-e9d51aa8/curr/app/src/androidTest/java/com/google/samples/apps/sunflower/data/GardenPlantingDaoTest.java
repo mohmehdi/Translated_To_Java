@@ -1,4 +1,3 @@
-
 package com.google.samples.apps.sunflower.data;
 
 import android.arch.persistence.room.Room;
@@ -21,12 +20,12 @@ public class GardenPlantingDaoTest {
 
     @Before
     public void createDb() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        android.content.Context context = InstrumentationRegistry.getTargetContext();
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase.class).build();
         gardenPlantingDao = database.gardenPlantingDao();
 
-        database.plantDao().insertAll(testPlants);
-        gardenPlantingDao.insertGardenPlanting(testGardenPlanting);
+        database.plantDao().insertAll(testPlants.INSTANCE);
+        gardenPlantingDao.insertGardenPlanting(testGardenPlanting.INSTANCE);
     }
 
     @After
@@ -36,7 +35,7 @@ public class GardenPlantingDaoTest {
 
     @Test
     public void testGetGardenPlantings() {
-        GardenPlanting gardenPlanting2 = new GardenPlanting("2", testPlants.get(1).getPlantId(), testCalendar, testCalendar);
+        GardenPlanting gardenPlanting2 = new GardenPlanting("2", testPlants.INSTANCE.get(1).getPlantId(), testCalendar.INSTANCE, testCalendar.INSTANCE);
         gardenPlantingDao.insertGardenPlanting(gardenPlanting2);
         Assert.assertThat(getValue(gardenPlantingDao.getGardenPlantings()).size(), CoreMatchers.equalTo(2));
     }
@@ -44,17 +43,17 @@ public class GardenPlantingDaoTest {
     @Test
     public void testGetGardenPlanting() {
         Assert.assertThat(getValue(gardenPlantingDao.getGardenPlanting(
-                testGardenPlanting.getGardenPlantingId())), CoreMatchers.equalTo(testGardenPlanting));
+                testGardenPlanting.INSTANCE.getGardenPlantingId())), CoreMatchers.equalTo(testGardenPlanting.INSTANCE));
     }
 
     @Test
     public void testGetGardenPlantingForPlant() {
-        Assert.assertThat(getValue(gardenPlantingDao.getGardenPlantingForPlant(testPlant.getPlantId())),
-                CoreMatchers.equalTo(testGardenPlanting));
+        Assert.assertThat(getValue(gardenPlantingDao.getGardenPlantingForPlant(testPlant.INSTANCE.getPlantId())),
+                CoreMatchers.equalTo(testGardenPlanting.INSTANCE));
     }
 
     @Test
     public void testGetGardenPlantingForPlant_notFound() {
-        Assert.assertNull(getValue(gardenPlantingDao.getGardenPlantingForPlant(testPlants.get(2).getPlantId())));
+        Assert.assertNull(getValue(gardenPlantingDao.getGardenPlantingForPlant(testPlants.INSTANCE.get(2).getPlantId())));
     }
 }

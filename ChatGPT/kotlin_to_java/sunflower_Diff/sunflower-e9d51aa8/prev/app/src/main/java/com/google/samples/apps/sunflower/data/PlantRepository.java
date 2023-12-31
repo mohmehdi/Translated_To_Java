@@ -1,24 +1,10 @@
-
 package com.google.samples.apps.sunflower.data;
 
 public class PlantRepository {
-
     private PlantDao plantDao;
-    private static volatile PlantRepository instance;
 
     private PlantRepository(PlantDao plantDao) {
         this.plantDao = plantDao;
-    }
-
-    public static PlantRepository getInstance(PlantDao plantDao) {
-        if (instance == null) {
-            synchronized (PlantRepository.class) {
-                if (instance == null) {
-                    instance = new PlantRepository(plantDao);
-                }
-            }
-        }
-        return instance;
     }
 
     public List<Plant> getPlants() {
@@ -31,5 +17,18 @@ public class PlantRepository {
 
     public List<Plant> getPlantsWithGrowZoneNumber(int growZoneNumber) {
         return plantDao.getPlantsWithGrowZoneNumber(growZoneNumber);
+    }
+
+    private static volatile PlantRepository instance;
+
+    public static PlantRepository getInstance(PlantDao plantDao) {
+        if (instance == null) {
+            synchronized (PlantRepository.class) {
+                if (instance == null) {
+                    instance = new PlantRepository(plantDao);
+                }
+            }
+        }
+        return instance;
     }
 }

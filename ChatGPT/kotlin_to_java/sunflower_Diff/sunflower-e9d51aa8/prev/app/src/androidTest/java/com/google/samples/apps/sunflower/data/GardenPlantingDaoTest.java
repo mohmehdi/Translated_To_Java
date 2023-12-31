@@ -1,4 +1,3 @@
-
 package com.google.samples.apps.sunflower.data;
 
 import android.arch.persistence.room.Room;
@@ -20,7 +19,7 @@ public class GardenPlantingDaoTest {
 
     @Before
     public void createDb() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        android.content.Context context = InstrumentationRegistry.getTargetContext();
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase.class).build();
         gardenPlantingDao = database.gardenPlantingDao();
 

@@ -10,14 +10,11 @@ import java.util.Calendar;
 @Entity(tableName = "garden_plantings", foreignKeys = {@ForeignKey(entity = Plant.class,
         parentColumns = {"id"}, childColumns = {"plant_id"})})
 public class GardenPlanting {
-
     @PrimaryKey
     @ColumnInfo(name = "id")
     private String gardenPlantingId;
-
     @ColumnInfo(name = "plant_id")
     private String plantId;
-
     private Calendar plantDate;
     private Calendar lastWateringDate;
 

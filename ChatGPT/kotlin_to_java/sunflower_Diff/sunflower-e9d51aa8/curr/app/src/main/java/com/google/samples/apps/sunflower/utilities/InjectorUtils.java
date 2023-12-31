@@ -1,4 +1,3 @@
-
 package com.google.samples.apps.sunflower.utilities;
 
 import android.content.Context;
@@ -15,7 +14,8 @@ public class InjectorUtils {
     }
 
     private static GardenPlantingRepository getGardenPlantingRepository(Context context) {
-        return GardenPlantingRepository.getInstance(AppDatabase.getInstance(context).gardenPlantingDao());
+        return GardenPlantingRepository.getInstance(
+                AppDatabase.getInstance(context).gardenPlantingDao());
     }
 
     public static PlantListViewModelFactory providePlantListViewModelFactory(Context context) {
@@ -23,7 +23,11 @@ public class InjectorUtils {
         return new PlantListViewModelFactory(repository);
     }
 
-    public static PlantDetailViewModelFactory providePlantDetailViewModelFactory(Context context, String plantId) {
-        return new PlantDetailViewModelFactory(getPlantRepository(context), getGardenPlantingRepository(context), plantId);
+    public static PlantDetailViewModelFactory providePlantDetailViewModelFactory(
+            Context context,
+            String plantId
+    ) {
+        return new PlantDetailViewModelFactory(getPlantRepository(context),
+                getGardenPlantingRepository(context), plantId);
     }
 }

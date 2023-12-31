@@ -7,8 +7,7 @@ import android.widget.ImageView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 
-public class BindingAdapters {
-
+public class PlantDetailBindingAdapter {
     @BindingAdapter("app:imageFromUrl")
     public static void imageFromUrl(ImageView view, String imageUrl) {
         if (imageUrl != null && !imageUrl.isEmpty()) {

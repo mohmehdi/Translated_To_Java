@@ -1,4 +1,3 @@
-
 package com.google.samples.apps.sunflower.data;
 
 import org.hamcrest.CoreMatchers;

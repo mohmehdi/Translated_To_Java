@@ -1,4 +1,3 @@
-
 package com.google.samples.apps.sunflower;
 
 import android.arch.lifecycle.Observer;
@@ -31,13 +30,13 @@ public class PlantListActivity extends AppCompatActivity {
                 R.layout.activity_plant_list);
         setSupportActionBar(binding.toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        binding.getToolbar().setTitle(getTitle());
+        binding.toolbar.setTitle(getTitle());
 
-        if (binding.getPlantListFrame().getPlantDetailContainer() != null) {
+        if (binding.plantListFrame.getPlantDetailContainer() != null) {
             isTwoPane = true;
         }
         adapter = new PlantAdapter(this, isTwoPane);
-        binding.getPlantListFrame().getPlantList().setAdapter(adapter);
+        binding.plantListFrame.getPlantList().setAdapter(adapter);
 
         PlantListViewModelFactory factory = InjectorUtils.providePlantListViewModelFactory(this);
         viewModel = ViewModelProviders.of(this, factory).get(PlantListViewModel.class);
@@ -73,7 +72,7 @@ public class PlantListActivity extends AppCompatActivity {
     }
 
     private void updateData() {
-        arePlantsFiltered = !arePlantsFiltered;
+        arePlantsFiltered = arePlantsFiltered ? false : true;
         if (arePlantsFiltered) {
             viewModel.clearGrowZoneNumber();
         } else {

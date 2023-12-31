@@ -5,9 +5,10 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Calendar;
-import java.util.Calendar.DAY_OF_MONTH;
-import java.util.Calendar.MONTH;
-import java.util.Calendar.YEAR;
+
+import static java.util.Calendar.DAY_OF_MONTH;
+import static java.util.Calendar.MONTH;
+import static java.util.Calendar.YEAR;
 
 public class GardenPlantingTest {
 

@@ -1,4 +1,3 @@
-
 package com.google.samples.apps.sunflower.utilities;
 
 import android.app.Application;

@@ -1,4 +1,3 @@
-
 package com.google.samples.apps.sunflower.utilities;
 
 import android.app.Activity;
@@ -14,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 
 public class TestUtils {
+
     public static ArrayList<Plant> testPlants = new ArrayList<Plant>() {{
         add(new Plant("1", "Apple", "A red fruit", 1));
         add(new Plant("2", "B", "Description B", 1));

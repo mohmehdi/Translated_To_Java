@@ -1,4 +1,3 @@
-
 package com.google.samples.apps.sunflower.data;
 
 import com.google.samples.apps.sunflower.utilities.runOnIoThread;
@@ -6,7 +5,6 @@ import java.util.Calendar;
 
 public class GardenPlantingRepository {
     private GardenPlantingDao gardenPlantingDao;
-    private static volatile GardenPlantingRepository instance;
 
     private GardenPlantingRepository(GardenPlantingDao gardenPlantingDao) {
         this.gardenPlantingDao = gardenPlantingDao;
@@ -25,6 +23,8 @@ public class GardenPlantingRepository {
     public GardenPlanting getGardenPlantingForPlant(String plantId) {
         return gardenPlantingDao.getGardenPlantingForPlant(plantId);
     }
+
+    private static volatile GardenPlantingRepository instance;
 
     public static GardenPlantingRepository getInstance(GardenPlantingDao gardenPlantingDao) {
         if (instance == null) {

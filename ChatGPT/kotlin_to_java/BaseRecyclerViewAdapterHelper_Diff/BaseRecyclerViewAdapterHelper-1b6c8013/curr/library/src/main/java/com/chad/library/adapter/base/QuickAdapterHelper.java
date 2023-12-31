@@ -1,4 +1,3 @@
-
 package com.chad.library.adapter.base;
 
 import androidx.recyclerview.widget.ConcatAdapter;
@@ -21,14 +20,13 @@ public class QuickAdapterHelper {
     private List<RecyclerView.Adapter<?>> mHeaderList;
     private List<RecyclerView.Adapter<?>> mFooterList;
 
-    public QuickAdapterHelper(BaseQuickAdapter<?, ?> contentAdapter, LeadingLoadStateAdapter<?> leadingLoadStateAdapter,
-                              TrailingLoadStateAdapter<?> trailingLoadStateAdapter, ConcatAdapter.Config config) {
+    public QuickAdapterHelper(BaseQuickAdapter<?, ?> contentAdapter, LeadingLoadStateAdapter<?> leadingLoadStateAdapter, TrailingLoadStateAdapter<?> trailingLoadStateAdapter, ConcatAdapter.Config config) {
         this.contentAdapter = contentAdapter;
         this.leadingLoadStateAdapter = leadingLoadStateAdapter;
         this.trailingLoadStateAdapter = trailingLoadStateAdapter;
         this.mAdapter = new ConcatAdapter(config);
-        this.mHeaderList = new ArrayList<>(0);
-        this.mFooterList = new ArrayList<>(0);
+        this.mHeaderList = new ArrayList<>();
+        this.mFooterList = new ArrayList<>();
 
         if (leadingLoadStateAdapter != null) {
             mAdapter.addAdapter(leadingLoadStateAdapter);
@@ -54,8 +52,7 @@ public class QuickAdapterHelper {
             contentAdapter.addOnViewAttachStateChangeListener(new BrvahAdapter.OnViewAttachStateChangeListener() {
                 @Override
                 public void onViewAttachedToWindow(RecyclerView.ViewHolder holder) {
-                    trailingLoadStateAdapter.checkPreload(contentAdapter.getItems().size(),
-                            holder.getBindingAdapterPosition());
+                    trailingLoadStateAdapter.checkPreload(contentAdapter.getItems().size(), holder.getBindingAdapterPosition());
                 }
 
                 @Override
@@ -105,9 +102,7 @@ public class QuickAdapterHelper {
             throw new IndexOutOfBoundsException("Index must be between 0 and " + mFooterList.size() + ". Given:" + index);
         }
 
-        int realIndex = trailingLoadStateAdapter == null ?
-                mAdapter.getAdapters().size() - mFooterList.size() + index :
-                mAdapter.getAdapters().size() - 1 - mFooterList.size() + index;
+        int realIndex = trailingLoadStateAdapter == null ? mAdapter.getAdapters().size() - mFooterList.size() + index : mAdapter.getAdapters().size() - 1 - mFooterList.size() + index;
 
         mAdapter.addAdapter(realIndex, footerAdapter);
         mFooterList.add(footerAdapter);
@@ -140,30 +135,14 @@ public class QuickAdapterHelper {
         mFooterList.remove(a);
     }
 
-    public RecyclerView.Adapter<?> getAdapter() {
-        return mAdapter;
-    }
-
-    public LoadState getLeadingLoadState() {
-        if (leadingLoadStateAdapter != null) {
-            return leadingLoadStateAdapter.getLoadState();
-        } else {
-            return new LoadState.NotLoading(false);
-        }
-    }
-
     public void setLeadingLoadState(LoadState value) {
         if (leadingLoadStateAdapter != null) {
             leadingLoadStateAdapter.setLoadState(value);
         }
     }
 
-    public LoadState getTrailingLoadState() {
-        if (trailingLoadStateAdapter != null) {
-            return trailingLoadStateAdapter.getLoadState();
-        } else {
-            return new LoadState.NotLoading(false);
-        }
+    public LoadState getLeadingLoadState() {
+        return leadingLoadStateAdapter != null ? leadingLoadStateAdapter.getLoadState() : new LoadState(false);
     }
 
     public void setTrailingLoadState(LoadState value) {
@@ -172,15 +151,23 @@ public class QuickAdapterHelper {
         }
     }
 
-    public static class Builder {
+    public LoadState getTrailingLoadState() {
+        return trailingLoadStateAdapter != null ? trailingLoadStateAdapter.getLoadState() : new LoadState(false);
+    }
 
+    public RecyclerView.Adapter<?> getAdapter() {
+        return mAdapter;
+    }
+
+    public static class Builder {
         private BaseQuickAdapter<?, ?> contentAdapter;
         private LeadingLoadStateAdapter<?> leadingLoadStateAdapter;
         private TrailingLoadStateAdapter<?> trailingLoadStateAdapter;
-        private ConcatAdapter.Config config = ConcatAdapter.Config.DEFAULT;
+        private ConcatAdapter.Config config;
 
         public Builder(BaseQuickAdapter<?, ?> contentAdapter) {
             this.contentAdapter = contentAdapter;
+            this.config = ConcatAdapter.Config.DEFAULT;
         }
 
         public Builder setTrailingLoadStateAdapter(TrailingLoadStateAdapter<?> loadStateAdapter) {
@@ -189,7 +176,7 @@ public class QuickAdapterHelper {
         }
 
         public Builder setTrailingLoadStateAdapter(TrailingLoadStateAdapter.OnTrailingListener loadMoreListener) {
-            return setTrailingLoadStateAdapter(new DefaultTrailingLoadStateAdapter(loadMoreListener));
+            return setTrailingLoadStateAdapter(new DefaultTrailingLoadStateAdapter().setOnLoadMoreListener(loadMoreListener));
         }
 
         public Builder setLeadingLoadStateAdapter(LeadingLoadStateAdapter<?> loadStateAdapter) {
@@ -198,7 +185,7 @@ public class QuickAdapterHelper {
         }
 
         public Builder setLeadingLoadStateAdapter(LeadingLoadStateAdapter.OnLeadingListener loadListener) {
-            return setLeadingLoadStateAdapter(new DefaultLeadingLoadStateAdapter(loadListener));
+            return setLeadingLoadStateAdapter(new DefaultLeadingLoadStateAdapter().setOnLeadingListener(loadListener));
         }
 
         public Builder setConfig(ConcatAdapter.Config config) {

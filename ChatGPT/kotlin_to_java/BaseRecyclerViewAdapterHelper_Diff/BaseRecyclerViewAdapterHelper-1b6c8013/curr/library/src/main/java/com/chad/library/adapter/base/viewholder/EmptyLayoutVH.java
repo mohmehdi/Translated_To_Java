@@ -1,4 +1,3 @@
-
 package com.chad.library.adapter.base.viewholder;
 
 import android.view.View;

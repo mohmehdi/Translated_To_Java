@@ -1,4 +1,3 @@
-
 package com.chad.library.adapter.base;
 
 import androidx.annotation.IntRange;

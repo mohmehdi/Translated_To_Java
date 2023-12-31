@@ -1,4 +1,3 @@
-
 package com.chad.baserecyclerviewadapterhelper.activity.home;
 
 import android.content.Intent;
@@ -26,7 +25,9 @@ import java.util.ArrayList;
 public class HomeActivity extends AppCompatActivity {
 
     private ActivityHomeBinding binding;
+
     private HomeAdapter homeAdapter;
+
     private QuickAdapterHelper helper;
 
     @Override
@@ -36,6 +37,7 @@ public class HomeActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         homeAdapter = new HomeAdapter(getHomeItemData());
+
         helper = new QuickAdapterHelper.Builder(homeAdapter)
                 .build()
                 .addHeader(new HomeTopHeaderAdapter());

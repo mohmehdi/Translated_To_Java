@@ -12,20 +12,6 @@ import org.junit.Test;
 
 public class GardenPlantingTest {
 
-  public class GardenPlanting {
-
-    private String plantId;
-    private String gardenId;
-    private Calendar plantDate;
-    private Calendar lastWateringDate;
-
-    public GardenPlanting(String plantId, String gardenId) {
-      this.plantId = plantId;
-      this.gardenId = gardenId;
-      this.plantDate = Calendar.getInstance();
-      this.lastWateringDate = Calendar.getInstance();
-    }
-
     @Test
     public void test_default_values() {
       GardenPlanting gardenPlanting = new GardenPlanting("1", "1");
@@ -48,5 +34,4 @@ public class GardenPlantingTest {
         CoreMatchers.equalTo(expectedCal.get(DAY_OF_MONTH))
       );
     }
-  }
 }

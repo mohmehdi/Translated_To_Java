@@ -1,0 +1,2 @@
+File: Kotlin_projects_commit_diff/iosched_Diff/iosched-5a893364/curr/shared/src/main/java/com/google/samples/apps/iosched/shared/data/userevent/FirestoreUserEventDataSource.java
+Error: finish_reason == length

@@ -40,7 +40,13 @@ public abstract class BaseQuickAdapter<T, VH extends RecyclerView.ViewHolder> ex
         this.items = items;
     }
 
-
+    protected void asStaggeredGridFullSpan(RecyclerView.ViewHolder holder) {
+        RecyclerView.LayoutParams layoutParams = holder.itemView.getLayoutParams();
+        if (layoutParams instanceof StaggeredGridLayoutManager.LayoutParams) {
+            StaggeredGridLayoutManager.LayoutParams staggeredLayoutParams = (StaggeredGridLayoutManager.LayoutParams) layoutParams;
+            staggeredLayoutParams.setFullSpan(true);
+        }
+    }
 
 
     public boolean isFullSpanItem(int itemType) {

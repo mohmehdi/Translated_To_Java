@@ -33,25 +33,30 @@ public class StoryViewModel extends ViewModel {
 
     public final Story story;
 
-    public StoryViewModel(
-            long storyId,
-            GetStoryUseCase getStoryUseCase,
-            PostStoryCommentUseCase postStoryComment,
-            PostReplyUseCase postReply,
-            GetCommentsWithRepliesAndUsersUseCase getCommentsWithRepliesAndUsers,
-            UpvoteStoryUseCase upvoteStory,
-            UpvoteCommentUseCase upvoteComment,
-            CoroutinesContextProvider contextProvider) {
-        Result<Story> result = getStoryUseCase.getStory(storyId);
-        switch (result) {
-            case Result.Success success:
-                story = success.getData();
-                getComments();
-                break;
-            case Result.Error error:
-                throw error.getException();
-            default:
-                Exhaustive.other(result);
+    public StoryViewModel(@NonNull Long storyId,
+                          @NonNull GetStoryUseCase getStoryUseCase,
+                          @NonNull PostStoryCommentUseCase postStoryComment,
+                          @NonNull PostReplyUseCase postReply,
+                          @NonNull GetCommentsWithRepliesAndUsersUseCase getCommentsWithRepliesAndUsers,
+                          @NonNull UpvoteStoryUseCase upvoteStory,
+                          @NonNull UpvoteCommentUseCase upvoteComment,
+                          @NonNull CoroutinesContextProvider contextProvider) {
+        this.getStoryUseCase = getStoryUseCase;
+        this.postStoryComment = postStoryComment;
+        this.postReply = postReply;
+        this.getCommentsWithRepliesAndUsers = getCommentsWithRepliesAndUsers;
+        this.upvoteStory = upvoteStory;
+        this.upvoteComment = upvoteComment;
+        this.contextProvider = contextProvider;
+
+        Result<Story> result = getStoryUseCase.execute(storyId);
+        if (result instanceof Result.Success) {
+            story = result.getData();
+            getComments();
+        } else if (result instanceof Result.Error) {
+            throw result.getException();
+        } else {
+            throw new IllegalStateException("Unexpected result type: " + result.getClass().getName());
         }
     }
 

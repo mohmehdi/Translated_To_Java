@@ -23,18 +23,19 @@ public class DesignerNewsDataSource implements PlaidDataSource {
         this.repository = repository;
     }
 
-    @Override
-    public Result<List<PlaidItem>> loadMore() {
-        Result<List<Story>> result = repository.search(sourceItem.getKey(), page);
-        return switch (result) {
-            case Result.Success<List<Story>> success -> {
-                page++;
-                List<PlaidItem> stories = success.getData().stream()
-                        .map(story -> story.toStory())
-                        .toList();
-                yield Result.Success(stories);
-            }
-            case Result.Error error -> error;
-        };
+@Override
+public suspend Result<List<PlaidItem>> loadMore() {
+    Result<List<PlaidItemData>> result = repository.search(sourceItem.getKey(), page);
+    if (result instanceof Result.Success) {
+        page++;
+        List<PlaidItemData> dataList = result.getData();
+        List<PlaidItem> stories = new ArrayList<>();
+        for (PlaidItemData data : dataList) {
+            stories.add(data.toStory());
+        }
+        return new Result.Success<>(stories);
+    } else {
+        return (Result<List<PlaidItem>>) result;
     }
+}
 }

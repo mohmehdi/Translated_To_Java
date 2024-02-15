@@ -1,3 +1,5 @@
+
+
 package io.plaidapp.designernews.domain;
 
 import io.plaidapp.core.data.Result;

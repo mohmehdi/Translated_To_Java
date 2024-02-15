@@ -1,3 +1,5 @@
+
+
 package io.plaidapp.designernews.dagger;
 
 import androidx.annotation.NonNull;
@@ -31,91 +33,75 @@ import io.plaidapp.designernews.ui.story.StoryViewModel;
 import io.plaidapp.designernews.ui.story.StoryViewModelFactory;
 
 @Module(
-  includes = {
-    CoreDataModule.class,
-    DesignerNewsDataModule.class,
-    MarkdownModule.class,
-    SharedPreferencesModule.class,
-  }
+    includes = {CoreDataModule.class,
+        DesignerNewsDataModule.class,
+        MarkdownModule.class,
+        SharedPreferencesModule.class}
 )
 public class StoryModule {
 
-  private final long storyId;
-  private final StoryActivity activity;
+    private final long storyId;
+    private final StoryActivity activity;
 
-  public StoryModule(long storyId, @NonNull StoryActivity activity) {
-    this.storyId = storyId;
-    this.activity = activity;
-  }
+    public StoryModule(long storyId, @NonNull StoryActivity activity) {
+        this.storyId = storyId;
+        this.activity = activity;
+    }
 
-  @Provides
-  @NonNull
-  public LoginViewModel provideLoginViewModel(
-    @NonNull DesignerNewsViewModelFactory factory
-  ) {
-    return ViewModelProviders.of(activity, factory).get(LoginViewModel.class);
-  }
+    @Provides
+    @NonNull
+    public LoginViewModel provideLoginViewModel(
+            @NonNull DesignerNewsViewModelFactory factory) {
+        return ViewModelProviders.of(activity, factory).get(LoginViewModel.class);
+    }
 
-  @Provides
-  @NonNull
-  public StoryViewModel provideStoryViewModel(
-    @NonNull StoryViewModelFactory factory
-  ) {
-    return ViewModelProviders.of(activity, factory).get(StoryViewModel.class);
-  }
+    @Provides
+    @NonNull
+    public StoryViewModel provideStoryViewModel(
+            @NonNull StoryViewModelFactory factory) {
+        return ViewModelProviders.of(activity, factory).get(StoryViewModel.class);
+    }
 
-  @Provides
-  @NonNull
-  public StoryViewModelFactory provideStoryViewModelFactory(
-    @NonNull GetStoryUseCase getStoryUseCase,
-    @NonNull PostStoryCommentUseCase postStoryCommentUseCase,
-    @NonNull PostReplyUseCase postReplyUseCase,
-    @NonNull GetCommentsWithRepliesAndUsersUseCase commentsWithRepliesAndUsersUseCase,
-    @NonNull UpvoteStoryUseCase upvoteStoryUseCase,
-    @NonNull UpvoteCommentUseCase upvoteCommentUseCase,
-    @NonNull CoroutinesDispatcherProvider coroutinesDispatcherProvider
-  ) {
-    return new StoryViewModelFactory(
-      storyId,
-      getStoryUseCase,
-      postStoryCommentUseCase,
-      postReplyUseCase,
-      commentsWithRepliesAndUsersUseCase,
-      upvoteStoryUseCase,
-      upvoteCommentUseCase,
-      coroutinesDispatcherProvider
-    );
-  }
+    @Provides
+    @NonNull
+    public StoryViewModelFactory provideStoryViewModelFactory(
+            @NonNull GetStoryUseCase getStoryUseCase,
+            @NonNull PostStoryCommentUseCase postStoryCommentUseCase,
+            @NonNull PostReplyUseCase postReplyUseCase,
+            @NonNull GetCommentsWithRepliesAndUsersUseCase commentsWithRepliesAndUsersUseCase,
+            @NonNull UpvoteStoryUseCase upvoteStoryUseCase,
+            @NonNull UpvoteCommentUseCase upvoteCommentUseCase,
+            @NonNull CoroutinesDispatcherProvider coroutinesDispatcherProvider) {
+        return new StoryViewModelFactory(storyId, getStoryUseCase, postStoryCommentUseCase,
+                postReplyUseCase, commentsWithRepliesAndUsersUseCase, upvoteStoryUseCase,
+                upvoteCommentUseCase, coroutinesDispatcherProvider);
+    }
 
-  @Provides
-  @NonNull
-  public UserRepository provideUserRepository(
-    @NonNull UserRemoteDataSource dataSource
-  ) {
-    return UserRepository.getInstance(dataSource);
-  }
+    @Provides
+    @NonNull
+    public UserRepository provideUserRepository(
+            @NonNull UserRemoteDataSource dataSource) {
+        return UserRepository.getInstance(dataSource);
+    }
 
-  @Provides
-  @NonNull
-  public CommentsRemoteDataSource provideCommentsRemoteDataSource(
-    @NonNull DesignerNewsService service
-  ) {
-    return CommentsRemoteDataSource.getInstance(service);
-  }
+    @Provides
+    @NonNull
+    public CommentsRemoteDataSource provideCommentsRemoteDataSource(
+            @NonNull DesignerNewsService service) {
+        return CommentsRemoteDataSource.getInstance(service);
+    }
 
-  @Provides
-  @NonNull
-  public VotesRepository provideVotesRepository(
-    @NonNull VotesRemoteDataSource remoteDataSource
-  ) {
-    return VotesRepository.getInstance(remoteDataSource);
-  }
+    @Provides
+    @NonNull
+    public VotesRepository provideVotesRepository(
+            @NonNull VotesRemoteDataSource remoteDataSource) {
+        return VotesRepository.getInstance(remoteDataSource);
+    }
 
-  @Provides
-  @NonNull
-  public CommentsRepository provideCommentsRepository(
-    @NonNull CommentsRemoteDataSource dataSource
-  ) {
-    return CommentsRepository.getInstance(dataSource);
-  }
+    @Provides
+    @NonNull
+    public CommentsRepository provideCommentsRepository(
+            @NonNull CommentsRemoteDataSource dataSource) {
+        return CommentsRepository.getInstance(dataSource);
+    }
 }

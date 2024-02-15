@@ -1,3 +1,4 @@
+
 package io.plaidapp.core.designernews;
 
 import io.plaidapp.core.designernews.data.stories.model.StoryLinks;
@@ -7,7 +8,7 @@ import okhttp3.ResponseBody;
 
 public class TestData {
 
-  User user = new User(
+  public static final User user = new User(
     111L,
     "Plaicent",
     "van Plaid",
@@ -15,14 +16,14 @@ public class TestData {
     "www"
   );
 
-  ResponseBody errorResponseBody = ResponseBody.create(
+  public static final ResponseBody errorResponseBody = ResponseBody.create(
     MediaType.parse(""),
     "Error"
   );
 
-  static final long userId = 123L;
+  public static final long userId = 123L;
 
-  StoryLinks storyLinks = new StoryLinks(
+  public static final StoryLinks storyLinks = new StoryLinks(
     userId,
     Arrays.asList(1, 2, 3),
     Arrays.asList(11, 22, 33),

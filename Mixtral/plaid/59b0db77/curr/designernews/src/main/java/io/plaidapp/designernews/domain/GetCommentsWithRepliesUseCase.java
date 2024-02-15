@@ -1,3 +1,4 @@
+
 package io.plaidapp.designernews.domain;
 
 import io.plaidapp.core.data.Result;
@@ -13,83 +14,70 @@ import javax.inject.Inject;
 
 public class GetCommentsWithRepliesUseCase {
 
-  private final CommentsRepository commentsRepository;
+    private final CommentsRepository commentsRepository;
 
-  @Inject
-  public GetCommentsWithRepliesUseCase(CommentsRepository commentsRepository) {
-    this.commentsRepository = commentsRepository;
-  }
+    @Inject
+    public GetCommentsWithRepliesUseCase(CommentsRepository commentsRepository) {
+        this.commentsRepository = commentsRepository;
+    }
 
-  public Result<List<CommentWithReplies>> invoke(List<Long> parentIds) {
-    List<List<CommentResponse>> replies = new ArrayList<>();
+    public Result<List<CommentWithReplies>> invoke(List<Long> parentIds) {
+        List<List<CommentResponse>> replies = new ArrayList<>();
 
-    Result<List<CommentResponse>> parentComments = commentsRepository.getComments(
-      parentIds
-    );
+        Result<List<CommentResponse>> parentComments = commentsRepository.getComments(parentIds);
 
-    while (parentComments instanceof Result.Success) {
-      List<CommentResponse> parents = parentComments.getData();
+        while (parentComments instanceof Result.Success) {
+            List<CommentResponse> parents = parentComments.getData();
 
-      replies.add(parents);
+            replies.add(parents);
 
-      List<Long> replyIds = new ArrayList<>();
-      for (CommentResponse comment : parents) {
-        replyIds.addAll(comment.getLinks().getComments());
-      }
-      if (!replyIds.isEmpty()) {
-        parentComments = commentsRepository.getComments(replyIds);
-      } else {
-        if (!replies.isEmpty()) {
-          return Result.success(matchComments(replies));
+            List<Long> replyIds = new ArrayList<>();
+            for (CommentResponse comment : parents) {
+                replyIds.addAll(comment.getLinks().getComments());
+            }
+            if (!replyIds.isEmpty()) {
+                parentComments = commentsRepository.getComments(replyIds);
+            } else {
+                if (!replies.isEmpty()) {
+                    return Result.success(matchComments(replies));
+                }
+            }
         }
-      }
+
+        if (replies.isEmpty()) {
+            if (parentComments instanceof Result.Error) {
+                return (Result.Error) parentComments;
+            } else {
+                throw new IOException("Unable to get comments");
+            }
+        }
+
+        return Result.success(matchComments(replies));
     }
 
-    if (replies.isEmpty()) {
-      if (parentComments instanceof Result.Error) {
-        return (Result.Error) parentComments;
-      } else {
-        throw new IOException("Unable to get comments");
-      }
+    private List<CommentWithReplies> matchComments(List<List<CommentResponse>> comments) {
+        List<CommentWithReplies> commentsWithReplies = new ArrayList<>();
+        for (int index = comments.size() - 1; index >= 0; index--) {
+            commentsWithReplies = matchCommentsWithReplies(comments.get(index), commentsWithReplies);
+        }
+        return commentsWithReplies;
     }
 
-    return Result.success(matchComments(replies));
-  }
+    private List<CommentWithReplies> matchCommentsWithReplies(
+            List<CommentResponse> comments, List<CommentWithReplies> replies) {
+        Map<Long, List<CommentWithReplies>> commentReplyMapping = new HashMap<>();
+        for (CommentWithReplies reply : replies) {
+            List<CommentWithReplies> repliesList = commentReplyMapping.getOrDefault(reply.getParentId(), new ArrayList<>());
+            repliesList.add(reply);
+            commentReplyMapping.put(reply.getParentId(), repliesList);
+        }
 
-  private List<CommentWithReplies> matchComments(
-    List<List<CommentResponse>> comments
-  ) {
-    List<CommentWithReplies> commentsWithReplies = new ArrayList<>();
-    for (int index = comments.size() - 1; index >= 0; index--) {
-      commentsWithReplies =
-        matchCommentsWithReplies(comments.get(index), commentsWithReplies);
+        List<CommentWithReplies> result = new ArrayList<>();
+        for (CommentResponse comment : comments) {
+            List<CommentWithReplies> commentReplies = commentReplyMapping.getOrDefault(comment.getId(), new ArrayList<>());
+            result.add(comment.toCommentsWithReplies(commentReplies));
+        }
+
+        return result;
     }
-    return commentsWithReplies;
-  }
-
-  private List<CommentWithReplies> matchCommentsWithReplies(
-    List<CommentResponse> comments,
-    List<CommentWithReplies> replies
-  ) {
-    Map<Long, List<CommentWithReplies>> commentReplyMapping = new HashMap<>();
-    for (CommentWithReplies reply : replies) {
-      List<CommentWithReplies> repliesList = commentReplyMapping.getOrDefault(
-        reply.getParentId(),
-        new ArrayList<>()
-      );
-      repliesList.add(reply);
-      commentReplyMapping.put(reply.getParentId(), repliesList);
-    }
-
-    List<CommentWithReplies> result = new ArrayList<>();
-    for (CommentResponse comment : comments) {
-      List<CommentWithReplies> commentReplies = commentReplyMapping.getOrDefault(
-        comment.getId(),
-        new ArrayList<>()
-      );
-      result.add(comment.toCommentsWithReplies(commentReplies));
-    }
-
-    return result;
-  }
 }

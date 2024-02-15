@@ -1,3 +1,5 @@
+
+
 package io.plaidapp.designernews.data.comments;
 
 import io.plaidapp.core.data.Result;
@@ -5,10 +7,9 @@ import io.plaidapp.core.designernews.data.api.DesignerNewsService;
 import io.plaidapp.core.designernews.data.comments.model.CommentResponse;
 import io.plaidapp.core.designernews.data.comments.model.NewCommentRequest;
 import io.plaidapp.core.util.SafeApiCall;
-import retrofit2.Response;
-
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class CommentsRemoteDataSource {
@@ -20,8 +21,8 @@ public class CommentsRemoteDataSource {
     }
 
     public Result<List<CommentResponse>> getComments(List<Long> ids) {
-        return SafeApiCall.execute(
-                () -> requestGetComments(ids),
+        return SafeApiCall.invoke(
+                this::requestGetComments,
                 "Error getting comments"
         );
     }
@@ -33,7 +34,7 @@ public class CommentsRemoteDataSource {
         }
         requestIds.deleteCharAt(requestIds.length() - 1); // remove the last comma
 
-        Response<List<CommentResponse>> response = service.getComments(requestIds.toString()).await();
+        retrofit2.Response<List<CommentResponse>> response = service.getComments(requestIds.toString()).execute();
         if (response.isSuccessful()) {
             List<CommentResponse> body = response.body();
             if (body != null) {
@@ -49,12 +50,13 @@ public class CommentsRemoteDataSource {
             String commentBody,
             Long parentCommentId,
             Long storyId,
-            Long userId) {
-        check(
-                parentCommentId != null || storyId != null
-        ) { "Unable to post comment. Either parent comment or the story need to be present" };
+            Long userId
+    ) {
+        if (parentCommentId == null && storyId == null) {
+            throw new IllegalArgumentException("Unable to post comment. Either parent comment or the story need to be present");
+        }
 
-        return SafeApiCall.execute(
+        return SafeApiCall.invoke(
                 () -> postComment(commentBody, parentCommentId, storyId, userId),
                 "Unable to post comment"
         );
@@ -64,14 +66,16 @@ public class CommentsRemoteDataSource {
             String commentBody,
             Long parentCommentId,
             Long storyId,
-            Long userId) {
+            Long userId
+    ) {
         NewCommentRequest request = new NewCommentRequest(
                 commentBody,
                 parentCommentId != null ? parentCommentId.toString() : null,
                 storyId != null ? storyId.toString() : null,
                 userId.toString()
         );
-        Response<NewCommentRequest.CommentResponseWrapper> response = service.comment(request).await();
+
+        retrofit2.Response<NewCommentResponse> response = service.comment(request).execute();
         if (response.isSuccessful()) {
             List<CommentResponse> body = response.body().getComments();
             if (!body.isEmpty()) {
@@ -82,14 +86,18 @@ public class CommentsRemoteDataSource {
     }
 
     public static CommentsRemoteDataSource getInstance(DesignerNewsService service) {
-        CommentsRemoteDataSource INSTANCE = INSTANCE_;
-        if (INSTANCE == null) {
+        CommentsRemoteDataSource instance = INSTANCE;
+        if (instance == null) {
             synchronized (CommentsRemoteDataSource.class) {
-                INSTANCE = INSTANCE_ = new CommentsRemoteDataSource(service);
+                instance = INSTANCE;
+                if (instance == null) {
+                    instance = new CommentsRemoteDataSource(service);
+                    INSTANCE = instance;
+                }
             }
         }
-        return INSTANCE;
+        return instance;
     }
 
-    private static volatile CommentsRemoteDataSource INSTANCE_;
+    private static volatile CommentsRemoteDataSource INSTANCE;
 }

@@ -1,19 +1,12 @@
+
+
 package io.plaidapp.designernews.data.comments;
 
-import static com.nhaarman.mockitokotlin2.argumentCaptor;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import com.nhaarman.mockitokotlin2.DoAnswer;
+import com.nhaarman.mockitokotlin2.argumentCaptor;
+import com.nhaarman.mockitokotlin2.doAnswer;
 import com.nhaarman.mockitokotlin2.mock;
+import com.nhaarman.mockitokotlin2.times;
+import com.nhaarman.mockitokotlin2.verify;
 import com.nhaarman.mockitokotlin2.whenever;
 import io.plaidapp.core.data.Result;
 import io.plaidapp.designernews.data.api.DNService;
@@ -24,167 +17,135 @@ import io.plaidapp.designernews.errorResponseBody;
 import io.plaidapp.designernews.repliesResponses;
 import io.plaidapp.designernews.replyResponse1;
 import java.io.IOException;
+import java.lang.IllegalStateException;
 import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.CompletableDeferred;
-import java.util.concurrent.ExecutionException;
+import kotlinx.coroutines.CompletableDeferred;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
+import retrofit2.Response;
 import retrofit2.Call;
 import retrofit2.Callback;
-import retrofit2.Response;
+import retrofit2.Retrofit;
 
 public class CommentsRemoteDataSourceTest {
 
-  private String body = "Plaid is awesome";
+    private final String body = "Plaid is awesome";
 
-  private DNService service = mock(DNService.class);
-  private CommentsRemoteDataSource dataSource = new CommentsRemoteDataSource(
-    service
-  );
+    private final DNService service = mock(DNService.class);
+    private final CommentsRemoteDataSource dataSource =
+            new io.plaidapp.designernews.data.comments.CommentsRemoteDataSource(service);
 
-  @Test
-  public void getComments_whenRequestSuccessful()
-    throws ExecutionException, InterruptedException {
-    CompletableDeferred<Response<List<CommentResponse>>> result = new CompletableDeferred<>();
-    result.complete(Response.success(repliesResponses));
+    @Test
+    public void getComments_whenRequestSuccessful() throws Exception {
 
-    when(service.getComments("1")).thenReturn(result);
+        final Response<List<CommentResponse>> result = Response.success(repliesResponses);
+        whenever(service.getComments("1")).thenReturn(CompletableDeferred.completedFuture(result));
 
-    Result<List<CommentResponse>> response = dataSource
-      .getComments(Arrays.asList(1L))
-      .get();
+        final Result<List<CommentResponse>> response = dataSource.getComments(java.util.Arrays.asList(1L));
 
-    Assert.assertNotNull(response);
-    Assert.assertEquals(Result.Success.create(repliesResponses), response);
-  }
+        Assert.assertNotNull(response);
+        Assert.assertEquals(Result.Success.create(repliesResponses), response);
+    }
 
-  @Test
-  public void getComments_forMultipleComments()
-    throws ExecutionException, InterruptedException {
-    CompletableDeferred<Response<List<CommentResponse>>> result = new CompletableDeferred<>();
-    result.complete(Response.success(repliesResponses));
+    @Test
+    public void getComments_forMultipleComments() throws Exception {
 
-    when(service.getComments("11,12")).thenReturn(result);
+        final Response<List<CommentResponse>> result = Response.success(repliesResponses);
+        whenever(service.getComments("11,12")).thenReturn(CompletableDeferred.completedFuture(result));
 
-    Result<List<CommentResponse>> response = dataSource
-      .getComments(Arrays.asList(11L, 12L))
-      .get();
+        final Result<List<CommentResponse>> response = dataSource.getComments(java.util.Arrays.asList(11L, 12L));
 
-    Assert.assertNotNull(response);
-    Assert.assertEquals(Result.Success.create(repliesResponses), response);
-  }
+        Assert.assertNotNull(response);
+        Assert.assertEquals(Result.Success.create(repliesResponses), response);
+    }
 
-  @Test
-  public void getComments_whenRequestFailed()
-    throws ExecutionException, InterruptedException {
-    CompletableDeferred<Response<List<CommentResponse>>> result = new CompletableDeferred<>();
-    result.complete(Response.error(400, errorResponseBody));
+    @Test
+    public void getComments_whenRequestFailed() throws Exception {
 
-    when(service.getComments("1")).thenReturn(result);
+        final Response<List<CommentResponse>> result = Response.error(
+                400,
+                errorResponseBody
+        );
+        whenever(service.getComments("1")).thenReturn(CompletableDeferred.completedFuture(result));
 
-    Result<List<CommentResponse>> response = dataSource
-      .getComments(Arrays.asList(1L))
-      .get();
+        final Result<List<CommentResponse>> response = dataSource.getComments(java.util.Arrays.asList(1L));
 
-    assertTrue(response instanceof Result.Error);
-  }
+        Assert.assertTrue(response instanceof Result.Error);
+    }
 
-  @Test
-  public void getComments_whenResponseEmpty()
-    throws ExecutionException, InterruptedException {
-    CompletableDeferred<Response<List<CommentResponse>>> result = new CompletableDeferred<>();
-    result.complete(Response.success((List<CommentResponse>) null));
+    @Test
+    public void getComments_whenResponseEmpty() throws Exception {
 
-    when(service.getComments("1")).thenReturn(result);
+        final Response<List<CommentResponse>> result = Response.success(null);
+        whenever(service.getComments("1")).thenReturn(CompletableDeferred.completedFuture(result));
 
-    Result<List<CommentResponse>> response = dataSource
-      .getComments(Arrays.asList(1L))
-      .get();
+        final Result<List<CommentResponse>> response = dataSource.getComments(java.util.Arrays.asList(1L));
 
-    assertTrue(response instanceof Result.Error);
-  }
+        Assert.assertTrue(response instanceof Result.Error);
+    }
 
-  @Test
-  public void getComments_whenException()
-    throws ExecutionException, InterruptedException {
-    doThrow(UnknownHostException.class).when(service).getComments(any());
+    @Test
+    public void getComments_whenException() throws Exception {
 
-    Result<List<CommentResponse>> response = dataSource
-      .getComments(Arrays.asList(1L))
-      .get();
+        doAnswer(invocation -> {
+            throw new UnknownHostException();
+        }).when(service).getComments("1");
 
-    assertTrue(response instanceof Result.Error);
-  }
+        final Result<List<CommentResponse>> response = dataSource.getComments(java.util.Arrays.asList(1L));
 
-  @Test(expected = IllegalStateException.class)
-  public void comment_whenParentCommentIdAndStoryIdNull() throws IOException {
-    dataSource.comment("text", null, null, 11L);
-  }
+        Assert.assertTrue(response instanceof Result.Error);
+    }
 
-  @Test
-  public void comment_whenException()
-    throws ExecutionException, InterruptedException {
-    NewCommentRequest request = new NewCommentRequest(body, "11", null, "111");
+    @Test(expected = IllegalStateException.class)
+    public void comment_whenParentCommentIdAndStoryIdNull() throws Exception {
 
-    doThrow(UnknownHostException.class).when(service).comment(request);
+        dataSource.comment("text", null, null, 11L);
 
-    Result response = dataSource.comment(body, 11L, null, 111L).get();
+    }
 
-    assertTrue(response instanceof Result.Error);
-  }
+    @Test
+    public void comment_whenException() throws Exception {
 
-  @Test
-  public void comment_withNoComments()
-    throws ExecutionException, InterruptedException {
-    Call<PostCommentResponse> call = mock(Call.class);
-    when(service.comment(any())).thenReturn(call);
+        final NewCommentRequest request =
+                new NewCommentRequest(body, "11", null, "111");
+        doAnswer(invocation -> {
+            throw new UnknownHostException();
+        }).when(service).comment(request);
 
-    PostCommentResponse postCommentResponse = new PostCommentResponse(
-      Arrays.asList()
-    );
-    Response<PostCommentResponse> response = Response.success(
-      postCommentResponse
-    );
+        final Result<PostCommentResponse> response = dataSource.comment(body, 11L, null, 111L);
 
-    doAnswer(invocation -> {
-        ((Callback) invocation.getArgument(0)).onResponse(call, response);
-        return null;
-      })
-      .when(call)
-      .enqueue(any());
+        Assert.assertTrue(response instanceof Result.Error);
+    }
 
-    Result result = dataSource.comment(body, 11L, null, 111L).get();
+    @Test
+    public void comment_withNoComments() throws Exception {
 
-    assertTrue(result instanceof Result.Error);
-  }
+        final Response<PostCommentResponse> response = Response.success(
+                new PostCommentResponse(
+                        java.util.Collections.emptyList()
+                )
+        );
+        final NewCommentRequest request =
+                new NewCommentRequest(body, "11", null, "111");
+        whenever(service.comment(request)).thenReturn(CompletableDeferred.completedFuture(response));
 
-  @Test
-  public void comment_withComments()
-    throws ExecutionException, InterruptedException {
-    Call<PostCommentResponse> call = mock(Call.class);
-    when(service.comment(any())).thenReturn(call);
+        final Result<PostCommentResponse> result = dataSource.comment(body, 11L, null, 111L);
 
-    PostCommentResponse postCommentResponse = new PostCommentResponse(
-      Arrays.asList(replyResponse1)
-    );
-    Response<PostCommentResponse> response = Response.success(
-      postCommentResponse
-    );
+        Assert.assertTrue(result instanceof Result.Error);
+    }
 
-    doAnswer(invocation -> {
-        ((Callback) invocation.getArgument(0)).onResponse(call, response);
-        return null;
-      })
-      .when(call)
-      .enqueue(any());
+    @Test
+    public void comment_withComments() throws Exception {
 
-    Result<CommentResponse> result = dataSource
-      .comment(body, 11L, null, 111L)
-      .get();
+        final Response<PostCommentResponse> response = Response.success(
+                new PostCommentResponse(java.util.Arrays.asList(replyResponse1))
+        );
+        final NewCommentRequest request =
+                new NewCommentRequest(body, "11", null, "111");
+        whenever(service.comment(request)).thenReturn(CompletableDeferred.completedFuture(response));
 
-    Assert.assertEquals(result, Result.Success.create(replyResponse1));
-  }
+        final Result<PostCommentResponse> result = dataSource.comment(body, 11L, null, 111L);
+
+        Assert.assertEquals(result, Result.Success.create(replyResponse1));
+    }
 }

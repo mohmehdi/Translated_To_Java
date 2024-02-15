@@ -1,3 +1,5 @@
+
+
 package io.plaidapp.designernews.domain;
 
 import io.plaidapp.core.data.Result;
@@ -33,9 +35,9 @@ public class PostReplyUseCase {
                 parentCommentId, user.getId());
 
         return result.exhaustive()
-                .map(comment -> {
+                .map(commentResponse -> {
                     CommentDomainModel commentWithNoReplies =
-                            comment.toCommentWithNoReplies(user);
+                            commentResponse.toCommentWithNoReplies(user);
                     return Result.success(commentWithNoReplies);
                 })
                 .orElse(result);

@@ -1,3 +1,4 @@
+
 package io.plaidapp.core.designernews.data.api;
 
 import io.plaidapp.core.data.api.EnvelopePayload;
@@ -21,63 +22,60 @@ import java.util.Map;
 
 public interface DesignerNewsService {
 
-    @EnvelopePayload(value = "stories", key = "type")
-    @GET("api/v2/stories")
-    Call<List<StoryResponse>> getStories(@Query("page") Integer page);
+  @EnvelopePayload("stories")
+  @GET("api/v2/stories")
+  Call < Response < List < StoryResponse >>> getStories(@Query("page") Integer page);
 
-    @EnvelopePayload(value = "stories", key = "type")
-    @GET("api/v2/stories/{ids}")
-    Call<List<StoryResponse>> getStories(@Path("ids") String commaSeparatedIds);
+  @EnvelopePayload("stories")
+  @GET("api/v2/stories/{ids}")
+  Call < Response < List < StoryResponse >>> getStories(@Path("ids") String commaSeparatedIds);
 
-    @EnvelopePayload(value = "users", key = "type")
-    @GET("api/v2/users/{ids}")
-    Call<List<User>> getUsers(@Path("ids") String userids);
+  @EnvelopePayload("users")
+  @GET("api/v2/users/{ids}")
+  Call < Response < List < User >>> getUsers(@Path("ids") String userids);
 
-    @EnvelopePayload(value = "users", key = "type")
-    @GET("api/v2/me")
-    Call<List<LoggedInUserResponse>> getAuthedUser();
+  @EnvelopePayload("users")
+  @GET("api/v2/me")
+  Call < Response < List < LoggedInUserResponse >>> getAuthedUser();
 
-    @FormUrlEncoded
-    @POST("oauth/token")
-    Call<AccessToken> login(@FieldMap Map<String, String> loginParams);
+  @FormUrlEncoded
+  @POST("oauth/token")
+  Call < Response < AccessToken >> login(@FieldMap Map < String, String > loginParams);
 
-    @GET("search?t=story")
-    Call<List<ResponseBody>> search(
-            @Query("q") String query,
-            @Query("p") Integer page);
+  @GET("search?t=story")
+  Call < Response < List < String >>> search(
+    @Query("q") String query,
+    @Query("p") Integer page);
 
-    @EnvelopePayload(value = "story", key = "type")
-    @POST("api/v2/stories/{id}/upvote")
-    Call<Story> upvoteStory(@Path("id") Long storyId);
+  @EnvelopePayload("story")
+  @POST("api/v2/stories/{id}/upvote")
+  Call < Story > upvoteStory(@Path("id") Long storyId);
 
-    @Headers("Content-Type: application/vnd.api+json")
-    @POST("api/v2/upvotes")
-    Call<ResponseBody> upvoteStoryV2(@Body RequestBody request);
+  @Headers("Content-Type: application/vnd.api+json")
+  @POST("api/v2/upvotes")
+  Call < Response < Void >> upvoteStoryV2(@Body RequestBody request);
 
-    @EnvelopePayload(value = "stories", key = "type")
-    @Headers("Content-Type: application/vnd.api+json")
-    @POST("api/v2/stories")
-    Call<List<StoryResponse>> postStory(@Body RequestBody story);
+  @POST("api/v2/stories")
+  @Headers("Content-Type: application/vnd.api+json")
+  Call < List < Story >> postStory(@Body NewStoryRequest story);
 
-    @EnvelopePayload(value = "comments", key = "type")
-    @GET("api/v2/comments/{ids}")
-    Call<List<CommentResponse>> getComments(@Path("ids") String commentIds);
+  @EnvelopePayload("comments")
+  @GET("api/v2/comments/{ids}")
+  Call < Response < List < CommentResponse >>> getComments(@Path("ids") String commentIds);
 
-    @Headers("Content-Type: application/vnd.api+json")
-    @POST("api/v2/comments")
-    Call<PostCommentResponse> comment(@Body RequestBody comment);
+  @POST("api/v2/comments")
+  @Headers("Content-Type: application/vnd.api+json")
+  Call < PostCommentResponse > comment(@Body NewCommentRequest comment);
 
-    @FormUrlEncoded
-    @POST("api/v1/comments/{id}/reply")
-    Call<Comment> replyToComment(
-            @Path("id") Long commentId,
-            @Field("comment[body]") String comment);
+  @FormUrlEncoded
+  @POST("api/v1/comments/{id}/reply")
+  Call < Comment > replyToComment(
+    @Path("id") Long commentId,
+    @Field("comment[body]") String comment);
 
-    @Headers("Content-Type: application/vnd.api+json")
-    @POST("api/v2/comment_upvotes")
-    Call<ResponseBody> upvoteComment(@Body RequestBody request);
+  @Headers("Content-Type: application/vnd.api+json")
+  @POST("api/v2/comment_upvotes")
+  Call < Response < Void >> upvoteComment(@Body RequestBody request);
 
-    companion object {
-        public static final String ENDPOINT = "https:";
-    }
+    String ENDPOINT = "https:";
 }

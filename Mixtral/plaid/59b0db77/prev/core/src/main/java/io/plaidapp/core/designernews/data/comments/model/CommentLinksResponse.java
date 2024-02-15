@@ -1,54 +1,35 @@
-package io.plaidapp.designernews.data.comments.model;
+
+
+package io.plaidapp.core.designernews.data.comments.model;
 
 import android.os.Parcelable;
 import com.google.gson.annotations.SerializedName;
 import java.util.ArrayList;
 import java.util.List;
-import kotlin.jvm.JvmField;
 import kotlinx.android.parcel.Parcelize;
 
 @Parcelize
-public final class CommentLinksResponse implements Parcelable {
+public class CommentLinksResponse implements Parcelable {
+    @SerializedName("user")
+    public long userId;
+    
+    @SerializedName("story")
+    public long story;
+    
+    @SerializedName("parent_comment")
+    public Long parentComment;
+    
+    @SerializedName("comments")
+    public List<Long> comments = new ArrayList<>();
+    
+    @SerializedName("comment_upvotes")
+    public List<String> commentUpvotes = new ArrayList<>();
+    
+    @SerializedName("comment_downvotes")
+    public List<String> commentDownvotes = new ArrayList<>();
 
-  @SerializedName("user")
-  @JvmField
-  public final long userId;
+    public CommentLinksResponse() {}
 
-  @SerializedName("story")
-  @JvmField
-  public final long story;
-
-  @SerializedName("parent_comment")
-  @JvmField
-  public final Long parentComment;
-
-  @SerializedName("comments")
-  @JvmField
-  public final List comments;
-
-  @SerializedName("comment_upvotes")
-  @JvmField
-  public final List commentUpvotes;
-
-  @SerializedName("comment_downvotes")
-  @JvmField
-  public final List commentDownvotes;
-
-  public CommentLinksResponse(
-    long userId,
-    long story,
-    Long parentComment,
-    List comments,
-    List commentUpvotes,
-    List commentDownvotes
-  ) {
-    this.userId = userId;
-    this.story = story;
-    this.parentComment = parentComment;
-    this.comments = comments != null ? comments : new ArrayList();
-    this.commentUpvotes =
-      commentUpvotes != null ? commentUpvotes : new ArrayList();
-    this.commentDownvotes =
-      commentDownvotes != null ? commentDownvotes : new ArrayList();
-  }
+    // You need to implement the Parcelable methods: describeContents() and writeToParcel()
+    // Please refer to the Kotlin code for the logic of these methods
 }

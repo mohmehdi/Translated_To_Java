@@ -1,3 +1,5 @@
+
+
 package io.plaidapp.designernews.data.api;
 
 import io.plaidapp.core.data.api.EnvelopePayload;
@@ -19,63 +21,55 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.http.*;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 public interface DNService {
 
     @EnvelopePayload("stories")
     @GET("api/v2/stories")
-    CompletableFuture<Response<List<StoryResponse>>> getStories(@Query("page") Integer page);
+    Call<Response<List<StoryResponse>>> getStories(@Query("page") Integer page);
 
     @EnvelopePayload("stories")
     @GET("api/v2/stories/{ids}")
-    CompletableFuture<Response<List<StoryResponse>>> getStories(@Path("ids") String commaSeparatedIds);
+    Call<Response<List<StoryResponse>>> getStories(@Path("ids") String commaSeparatedIds);
 
     @EnvelopePayload("users")
     @GET("api/v2/users/{ids}")
-    CompletableFuture<Response<List<User>>> getUsers(@Path("ids") String userids);
+    Call<Response<List<User>>> getUsers(@Path("ids") String userids);
 
     @EnvelopePayload("users")
     @GET("api/v2/me")
-    CompletableFuture<Response<List<LoggedInUserResponse>>> getAuthedUser();
+    Call<Response<List<LoggedInUserResponse>>> getAuthedUser();
 
     @FormUrlEncoded
     @POST("oauth/token")
-    CompletableFuture<Response<AccessToken>> login(@FieldMap Map<String, String> loginParams);
+    Call<Response<AccessToken>> login(@FieldMap Map<String, String> loginParams);
 
     @GET("search?t=story")
-    CompletableFuture<Response<List<String>>> search(
-            @Query("q") String query,
-            @Query("p") Integer page
-    );
+    Call<Response<List<String>>> search(@Query("q") String query, @Query("p") Integer page);
 
     @EnvelopePayload("story")
     @POST("api/v2/stories/{id}/upvote")
     Call<Story> upvoteStory(@Path("id") Long storyId);
 
-    @Headers("Content-Type: application/vnd.api+json")
     @POST("api/v2/upvotes")
-    CompletableFuture<Response<Void>> upvoteStoryV2(@Body RequestBody request);
+    Call<Response<Void>> upvoteStoryV2(@Body RequestBody request);
 
     @EnvelopePayload("stories")
-    @Headers("Content-Type: application/vnd.api+json")
     @POST("api/v2/stories")
     Call<List<Story>> postStory(@Body NewStoryRequest story);
 
     @EnvelopePayload("comments")
     @GET("api/v2/comments/{ids}")
-    CompletableFuture<Response<List<CommentResponse>>> getComments(@Path("ids") String commentIds);
+    Call<Response<List<CommentResponse>>> getComments(@Path("ids") String commentIds);
 
-    @Headers("Content-Type: application/vnd.api+json")
     @POST("api/v2/comments")
-    CompletableFuture<Response<PostCommentResponse>> comment(@Body RequestBody comment);
+    Call<Response<PostCommentResponse>> comment(@Body RequestBody comment);
 
-    @Headers("Content-Type: application/vnd.api+json")
     @POST("api/v2/comment_upvotes")
-    CompletableFuture<Response<Void>> upvoteComment(@Body RequestBody request);
+    Call<Response<Void>> upvoteComment(@Body RequestBody request);
 
-    companion object {
-        final String ENDPOINT = "https:";
-    }
+    public static final String ENDPOINT = "https:";
 }

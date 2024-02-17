@@ -1,3 +1,5 @@
+
+
 package com.github.shadowsocks;
 
 import android.app.Activity;
@@ -8,18 +10,15 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.VpnService;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
-import android.view.View;
-
+import androidx.appcompat.app.AppCompatActivity;
 import com.github.shadowsocks.aidl.IShadowsocksService;
 import com.github.shadowsocks.bg.BaseService;
 import com.github.shadowsocks.utils.broadcastReceiver;
 
-public class VpnRequestActivity extends Activity implements ShadowsocksConnection.Interface {
+public class VpnRequestActivity extends AppCompatActivity implements ShadowsocksConnection.Interface {
     private static final String TAG = "VpnRequestActivity";
     private static final int REQUEST_CONNECT = 1;
-
     private BroadcastReceiver receiver;
 
     @Override
@@ -31,12 +30,7 @@ public class VpnRequestActivity extends Activity implements ShadowsocksConnectio
         }
         KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
         if (km.inKeyguardRestrictedInputMode()) {
-            receiver = new BroadcastReceiver() {
-                @Override
-                public void onReceive(Context context, Intent intent) {
-                    connection.connect();
-                }
-            };
+            receiver = broadcastReceiver(this, new IntentFilter(Intent.ACTION_USER_PRESENT)) { _, _ -> connection.connect(); };
             registerReceiver(receiver, new IntentFilter(Intent.ACTION_USER_PRESENT));
         } else {
             connection.connect();
@@ -45,8 +39,7 @@ public class VpnRequestActivity extends Activity implements ShadowsocksConnectio
 
     @Override
     public void onServiceConnected(IShadowsocksService service) {
-        Handler appHandler = app.getHandler();
-        appHandler.postDelayed(new Runnable() {
+        app.handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 Intent intent = VpnService.prepare(VpnRequestActivity.this);

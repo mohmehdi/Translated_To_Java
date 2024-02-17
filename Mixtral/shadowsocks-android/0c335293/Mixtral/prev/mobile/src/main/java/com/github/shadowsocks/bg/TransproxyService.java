@@ -1,17 +1,14 @@
+
+
 package com.github.shadowsocks.bg;
 
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import android.os.Parcel;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import android.os.ParcelFileDescriptor;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import com.github.shadowsocks.preference.DataStore;
-import com.github.shadowsocks.std.FileUtil;
-import com.github.shadowsocks.std.GuardedProcess;
-import com.github.shadowsocks.std.ParcelableUtil;
-import com.github.shadowsocks.std.executable.Executable;
-import com.github.shadowsocks.std.util.BaseService;
-import com.github.shadowsocks.std.util.ServiceNotification;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -21,24 +18,23 @@ import java.util.List;
 
 public class TransproxyService extends Service implements LocalDnsService.Interface {
     static {
-        BaseService.register(TransproxyService.class);
+        BaseService.register(new TransproxyService());
     }
 
-    private static final String TAG = "ShadowsocksTransproxyService";
+    private TransproxyService() {}
 
-    private GuardedProcess sstunnelProcess;
-    private GuardedProcess redsocksProcess;
-
+    @NonNull
     @Override
     public String getTag() {
-        return TAG;
+        return "ShadowsocksTransproxyService";
     }
 
     @Override
     public ServiceNotification createNotification() {
-        return new ServiceNotification(this, data.getProfile().formattedName, "service-transproxy", true);
+        return new ServiceNotification(this, data.getProfile().getFormattedName(), "service-transproxy", true);
     }
 
+    @Nullable
     @Override
     public IBinder onBind(Intent intent) {
         return super.onBind(intent);
@@ -48,6 +44,9 @@ public class TransproxyService extends Service implements LocalDnsService.Interf
     public int onStartCommand(Intent intent, int flags, int startId) {
         return super.<LocalDnsService.Interface>onStartCommand(intent, flags, startId);
     }
+
+    private GuardedProcess sstunnelProcess;
+    private GuardedProcess redsocksProcess;
 
     private void startDNSTunnel() {
         List<String> cmd = new ArrayList<>();
@@ -63,6 +62,7 @@ public class TransproxyService extends Service implements LocalDnsService.Interf
         cmd.add(DataStore.profile.remoteDns.split(",")[0].trim() + ":53");
         cmd.add("-c");
         cmd.add("shadowsocks.json");
+
         sstunnelProcess = new GuardedProcess(cmd).start();
     }
 
@@ -81,11 +81,14 @@ public class TransproxyService extends Service implements LocalDnsService.Interf
                 " port = " + DataStore.portProxy + ";\n" +
                 " type = socks5;\n" +
                 "}\n";
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(getFilesDir(), "redsocks.conf")))) {
+
+        File file = new File(getFilesDir(), "redsocks.conf");
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             writer.write(config);
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         redsocksProcess = new GuardedProcess(new ArrayList<String>() {{
             add(new File(getApplicationInfo().nativeLibraryDir, Executable.REDSOCKS).getAbsolutePath());
             add("-c");
@@ -97,7 +100,7 @@ public class TransproxyService extends Service implements LocalDnsService.Interf
     public void startNativeProcesses() {
         startRedsocksDaemon();
         super.startNativeProcesses();
-        if (DataStore.profile.udpdns) startDNSTunnel();
+        if (data.getProfile().udpdns) startDNSTunnel();
     }
 
     @Override

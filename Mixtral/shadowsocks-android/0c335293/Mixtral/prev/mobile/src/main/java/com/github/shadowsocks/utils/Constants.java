@@ -1,8 +1,7 @@
 package com.github.shadowsocks.utils;
 
-public final class Key {
+public class Key {
 public static final String PROFILE = "profile.db";
-
 
 public static final String id = "profileId";
 public static final String name = "profileName";
@@ -41,11 +40,10 @@ public static final String tfo = "tcp_fastopen";
 public static final String assetUpdateTime = "assetUpdateTime";
 }
 
-public final class Action {
+public class Action {
 public static final String SERVICE = "com.github.shadowsocks.SERVICE";
 public static final String CLOSE = "com.github.shadowsocks.CLOSE";
 public static final String RELOAD = "com.github.shadowsocks.RELOAD";
-
 
 public static final String EXTRA_PROFILE_ID = "com.github.shadowsocks.EXTRA_PROFILE_ID";
 }

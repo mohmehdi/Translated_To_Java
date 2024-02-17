@@ -1,3 +1,5 @@
+
+
 package com.github.shadowsocks.acl;
 
 import android.net.Uri;
@@ -10,14 +12,11 @@ import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Reader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +35,7 @@ class Acl {
     public static final String CUSTOM_RULES = "custom-rules";
     public static final String CUSTOM_RULES_FLATTENED = "custom-rules-flattened";
 
-    private static final Pattern networkAclParser = Pattern.compile("^IMPORT_URL\\s*<(.+)>\\s*$");
+    public static final Pattern networkAclParser = Pattern.compile("^IMPORT_URL\\s*<(.+)>\\s*$");
 
     public static File getFile(String id) {
         return new File(App.app.getFilesDir(), id + ".acl");
@@ -48,15 +47,16 @@ class Acl {
             try {
                 acl.fromId(CUSTOM_RULES);
             } catch (FileNotFoundException e) {
-                // swallow exception
+                // swallow
             }
             acl.bypass = true;
-            acl.bypassHostnames.clear(); // everything is bypassed
+            acl.bypassHostnames.clear();
             return acl;
         }
     }
 
     public static void save(String id, Acl acl) throws IOException {
+        getFile(id).createNewFile();
         BufferedWriter writer = new BufferedWriter(new FileWriter(getFile(id)));
         writer.write(acl.toString());
         writer.close();
@@ -110,24 +110,43 @@ class Acl {
         }
     }
 
-    private static class StringSorter implements DefaultSorter<String> {}
+    private static BaseSorter<String> StringSorter = new DefaultSorter<String>() {
+        @Override
+        int compareNonNull(String o1, String o2) {
+            return o1.compareTo(o2);
+        }
+    };
 
-    private static class SubnetSorter implements DefaultSorter<Subnet> {}
+    private static BaseSorter<Subnet> SubnetSorter = new DefaultSorter<Subnet>() {
+        @Override
+        int compareNonNull(Subnet o1, Subnet o2) {
+            return o1.compareTo(o2);
+        }
+    };
 
-    private static class URLSorter implements BaseSorter<URL> {
-        private final Comparator<URL> ordering = Comparator.comparing((URL it) -> it.getHost())
-            .thenComparingInt((URL it) -> it.getPort())
-            .thenComparing((URL it) -> it.getFile())
-            .thenComparing((URL it) -> it.getProtocol());
+    private static BaseSorter<URL> URLSorter = new BaseSorter<URL>() {
+        private final List<Uri.Builder> ordering = new ArrayList<Uri.Builder>() {{
+            add(new Uri.Builder().scheme("http").authority("host"));
+            add(new Uri.Builder().scheme("http").authority("port"));
+            add(new Uri.Builder().scheme("http").authority("file"));
+            add(new Uri.Builder().scheme("http").authority("scheme"));
+        }};
 
         @Override
         public int compareNonNull(URL o1, URL o2) {
-            return ordering.compare(o1, o2);
+            for (Uri.Builder builder : ordering) {
+                int cmp = builder.build().getQueryParameter("value1", o1.toString()).compareTo(builder.build().getQueryParameter("value2", o2.toString()));
+                if (cmp != 0) {
+                    return cmp;
+                }
+            }
+            return 0;
         }
-    }
+    };
 
     @DatabaseField(generatedId = true)
     int id;
+
     SortedList<String> bypassHostnames = new SortedList<>(String.class, StringSorter);
     SortedList<String> proxyHostnames = new SortedList<>(String.class, StringSorter);
     SortedList<Subnet> subnets = new SortedList<>(Subnet.class, SubnetSorter);
@@ -163,15 +182,18 @@ class Acl {
         subnets.clear();
         urls.clear();
         bypass = defaultBypass;
+
         SortedList<Subnet> bypassSubnets = new SortedList<>(Subnet.class, SubnetSorter);
         SortedList<Subnet> proxySubnets = new SortedList<>(Subnet.class, SubnetSorter);
+
         SortedList<String> hostnames = defaultBypass ? proxyHostnames : bypassHostnames;
         SortedList<Subnet> subnetsList = defaultBypass ? proxySubnets : bypassSubnets;
+
         try (BufferedReader br = new BufferedReader(reader)) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] blocks = line.split("#", 2);
-                String url = extractUrl(blocks[1]);
+                String url = getUrlFromLine(blocks[1]);
                 if (url != null) {
                     urls.add(new URL(url));
                 }
@@ -211,6 +233,7 @@ class Acl {
                 }
             }
         }
+
         subnets.addAll(bypassSubnets);
         subnets.addAll(proxySubnets);
         return this;
@@ -223,11 +246,11 @@ class Acl {
     public Acl flatten(int depth) {
         if (depth > 0) {
             for (URL url : urls) {
-                Acl child = new Acl().fromReader(url.openStream().bufferedReader(), bypass).flatten(depth - 1);
+                Acl child = new Acl().fromReader(url.openStream(), bypass).flatten(depth - 1);
                 if (bypass != child.bypass) {
                     Log.w(TAG, "Imported network ACL has a conflicting mode set. " +
                             "This will probably not work as intended. URL: " + url);
-                    child.subnets.clear(); // subnets for the different mode are discarded
+                    child.subnets.clear();
                     child.bypass = bypass;
                 }
                 bypassHostnames.addAll(child.bypassHostnames);
@@ -243,52 +266,40 @@ class Acl {
     public String toString() {
         StringBuilder result = new StringBuilder();
         result.append(bypass ? "[bypass_all]\n" : "[proxy_all]\n");
+
         List<String> bypassList = new ArrayList<>();
         List<String> proxyList = new ArrayList<>();
+
         if (bypass) {
-            for (String item : bypassHostnames) {
-                bypassList.add(item);
-            }
-            for (Subnet item : subnets) {
-                bypassList.add(item.toString());
-            }
-            for (String item : proxyHostnames) {
-                bypassList.add(item);
-            }
+            bypassList.addAll(bypassHostnames);
+            bypassList.addAll(subnets.stream().map(Subnet::toString).toList());
+            bypassList.addAll(proxyHostnames);
         } else {
-            for (String item : bypassHostnames) {
-                proxyList.add(item);
-            }
-            for (Subnet item : subnets) {
-                proxyList.add(item.toString());
-            }
-            for (String item : proxyHostnames) {
-                proxyList.add(item);
-            }
+            proxyList.addAll(subnets.stream().map(Subnet::toString).toList());
+            proxyList.addAll(proxyHostnames);
+            bypassList.addAll(bypassHostnames);
         }
+
         if (!bypassList.isEmpty()) {
             result.append("[bypass_list]\n");
             result.append(String.join("\n", bypassList));
             result.append('\n');
         }
+
         if (!proxyList.isEmpty()) {
             result.append("[proxy_list]\n");
             result.append(String.join("\n", proxyList));
             result.append('\n');
         }
+
         for (URL url : urls) {
             result.append("#IMPORT_URL <")
                     .append(url.toString())
                     .append(">\n");
         }
+
         return result.toString();
     }
 
-    private String extractUrl(String line) {
-        Matcher matcher = networkAclParser.matcher(line);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        return null;
-    }
+
 }

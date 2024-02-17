@@ -1,3 +1,5 @@
+
+
 package com.github.shadowsocks;
 
 import android.app.Activity;
@@ -5,9 +7,9 @@ import android.content.Intent;
 import android.content.pm.ShortcutManager;
 import android.os.Build;
 import android.os.Bundle;
-import androidx.core.content.pm.ShortcutInfoCompat;
-import androidx.core.content.pm.ShortcutManagerCompat;
-import androidx.core.graphics.drawable.IconCompat;
+import android.support.v4.content.pm.ShortcutInfoCompat;
+import android.support.v4.content.pm.ShortcutManagerCompat;
+import android.support.v4.graphics.drawable.IconCompat;
 import com.github.shadowsocks.App;
 import com.github.shadowsocks.aidl.IShadowsocksService;
 import com.github.shadowsocks.bg.BaseService;
@@ -18,20 +20,16 @@ public class QuickToggleShortcut extends Activity implements ShadowsocksConnecti
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (intent.getAction().equals(Intent.ACTION_CREATE_SHORTCUT)) {
-            Intent resultIntent = ShortcutManagerCompat.createShortcutResultIntent(this,
-                    new ShortcutInfoCompat.Builder(this, "toggle")
+            setResult(Activity.RESULT_OK, ShortcutManagerCompat.createShortcutResultIntent(this,
+                    ShortcutInfoCompat.Builder(this, "toggle")
                             .setIntent(new Intent(this, QuickToggleShortcut.class).setAction(Intent.ACTION_MAIN))
                             .setIcon(IconCompat.createWithResource(this, R.drawable.ic_qu_shadowsocks_launcher))
                             .setShortLabel(getString(R.string.quick_toggle))
-                            .build());
-            setResult(Activity.RESULT_OK, resultIntent);
+                            .build()));
             finish();
         } else {
             connection.connect();
-            if (Build.VERSION.SDK_INT >= 25) {
-                ShortcutManager shortcutManager = (ShortcutManager) getSystemService(SHORTCUT_SERVICE);
-                shortcutManager.reportShortcutUsed("toggle");
-            }
+            if (Build.VERSION.SDK_INT >= 25) getSystemService(ShortcutManager.class).reportShortcutUsed("toggle");
         }
     }
 

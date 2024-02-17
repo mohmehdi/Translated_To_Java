@@ -1,9 +1,11 @@
+
+
 package com.github.shadowsocks.bg;
 
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import androidx.annotation.Nullable;
+import android.util.Log;
 
 public class ProxyService extends Service implements BaseService.Interface {
 
@@ -21,7 +23,6 @@ public class ProxyService extends Service implements BaseService.Interface {
         return new ServiceNotification(this, data.getProfile().getFormattedName(), "service-proxy", true);
     }
 
-    @Nullable
     @Override
     public IBinder onBind(Intent intent) {
         return super.onBind(intent);

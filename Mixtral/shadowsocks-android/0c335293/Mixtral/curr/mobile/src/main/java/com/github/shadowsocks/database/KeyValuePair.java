@@ -1,3 +1,5 @@
+
+
 package com.github.shadowsocks.database;
 
 import com.j256.ormlite.field.DatabaseField;
@@ -9,8 +11,8 @@ import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Set;
 
-@DatabaseTable(tableName = "key_value_pair")
-class KeyValuePair {
+@DatabaseTable(tableName = "KeyValuePair")
+public class KeyValuePair {
     public static final int TYPE_UNINITIALIZED = 0;
     public static final int TYPE_BOOLEAN = 1;
     public static final int TYPE_FLOAT = 2;
@@ -22,14 +24,17 @@ class KeyValuePair {
     @DatabaseField(id = true)
     private String key;
     @DatabaseField
-    private int valueType = TYPE_UNINITIALIZED;
+    private int valueType;
     @DatabaseField(dataType = DataType.BYTE_ARRAY)
     private byte[] value;
 
     public KeyValuePair() {
+        this.valueType = TYPE_UNINITIALIZED;
+        this.value = new byte[0];
     }
 
     public KeyValuePair(String key) {
+        this();
         this.key = key;
     }
 

@@ -1,0 +1,481 @@
+
+
+package okhttp3.internal.http1;
+
+import java.io.EOFException;
+import java.io.IOException;
+import java.net.ProtocolException;
+import java.util.concurrent.TimeUnit;
+import okhttp3.Headers;
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.internal.EmptyHeaders;
+import okhttp3.internal.http.ExchangeCodec;
+import okhttp3.internal.http.RequestLine;
+import okhttp3.internal.http.StatusLine;
+import okhttp3.internal.http.StatusLine.Companion;
+import okhttp3.internal.http.promisesBody;
+import okhttp3.internal.http.receiveHeaders;
+import okhttp3.internal.skipAll;
+import okio.Buffer;
+import okio.BufferedSink;
+import okio.BufferedSource;
+import okio.ForwardingTimeout;
+import okio.Sink;
+import okio.Source;
+import okio.Timeout;
+
+public class Http1ExchangeCodec implements ExchangeCodec {
+  private static final long NO_CHUNK_YET = -1;
+
+  private static final int STATE_IDLE = 0;
+  private static final int STATE_OPEN_REQUEST_BODY = 1;
+  private static final int STATE_WRITING_REQUEST_BODY = 2;
+  private static final int STATE_READ_RESPONSE_HEADERS = 3;
+  private static final int STATE_OPEN_RESPONSE_BODY = 4;
+  private static final int STATE_READING_RESPONSE_BODY = 5;
+  private static final int STATE_CLOSED = 6;
+
+  private OkHttpClient client;
+  private RealConnection connection;
+  private BufferedSource source;
+  private BufferedSink sink;
+  private int state = STATE_IDLE;
+  private HeadersReader headersReader;
+
+  public Http1ExchangeCodec(OkHttpClient client, RealConnection connection, BufferedSource source, BufferedSink sink) {
+    this.client = client;
+    this.connection = connection;
+    this.source = source;
+    this.sink = sink;
+    this.headersReader = new HeadersReader(source);
+  }
+
+  @Override
+  public Sink createRequestBody(Request request, long contentLength) throws IOException {
+    if (request.body() != null && request.body().isDuplex()) {
+      throw new ProtocolException("Duplex connections are not supported for HTTP/1");
+    }
+
+    if (request.isChunked()) {
+      return newChunkedSink();
+    } else if (contentLength != -1) {
+      return newKnownLengthSink(contentLength);
+    } else {
+      throw new IllegalStateException(
+          "Cannot stream a request body without chunked encoding or a known content length!");
+    }
+  }
+
+  @Override
+  public void cancel() {
+    connection.cancel();
+  }
+
+  @Override
+  public void writeRequestHeaders(Request request) throws IOException {
+    RequestLine requestLine = RequestLine.get(request, connection.route().proxy().type());
+    writeRequest(request.headers(), requestLine);
+  }
+
+  @Override
+  public long reportedContentLength(Response response) {
+    if (!response.promisesBody()) {
+      return 0;
+    }
+    if (response.isChunked()) {
+      return -1;
+    } else {
+      return response.headersContentLength();
+    }
+  }
+
+  @Override
+  public Source openResponseBodySource(Response response) {
+    if (!response.promisesBody()) {
+      return newFixedLengthSource(0);
+    }
+    if (response.isChunked()) {
+      return newChunkedSource(response.request().url());
+    } else {
+      long contentLength = response.headersContentLength();
+      if (contentLength != -1) {
+        return newFixedLengthSource(contentLength);
+      } else {
+        return newUnknownLengthSource();
+      }
+    }
+  }
+
+  @Override
+  public Headers trailers() {
+    if (state != STATE_CLOSED) {
+      throw new IllegalStateException("too early; can't read the trailers yet");
+    }
+    return EmptyHeaders.INSTANCE;
+  }
+
+  @Override
+  public void flushRequest() {
+    sink.flush();
+  }
+
+  @Override
+  public void finishRequest() {
+    sink.flush();
+  }
+
+  public void writeRequest(Headers headers, String requestLine) throws IOException {
+    if (state != STATE_IDLE) {
+      throw new IllegalStateException("state: " + state);
+    }
+    sink.writeUtf8(requestLine).writeUtf8("\r\n");
+    for (int i = 0; i < headers.size(); i++) {
+      sink.writeUtf8(headers.name(i))
+          .writeUtf8(": ")
+          .writeUtf8(headers.value(i))
+          .writeUtf8("\r\n");
+    }
+    sink.writeUtf8("\r\n");
+    state = STATE_OPEN_REQUEST_BODY;
+  }
+
+  @Override
+  public Response.Builder readResponseHeaders(boolean expectContinue) throws IOException {
+    if (state != STATE_OPEN_REQUEST_BODY && state != STATE_WRITING_REQUEST_BODY && state != STATE_READ_RESPONSE_HEADERS) {
+      throw new IllegalStateException("state: " + state);
+    }
+
+    try {
+      StatusLine statusLine = StatusLine.parse(headersReader.readLine());
+
+      Response.Builder responseBuilder = new Response.Builder()
+          .protocol(statusLine.protocol())
+          .code(statusLine.code())
+          .message(statusLine.message())
+          .headers(headersReader.readHeaders());
+
+      if (expectContinue && statusLine.code() == Companion.HTTP_CONTINUE) {
+        return null;
+      } else if (statusLine.code() == Companion.HTTP_CONTINUE) {
+        state = STATE_READ_RESPONSE_HEADERS;
+        return responseBuilder;
+      } else {
+        state = STATE_OPEN_RESPONSE_BODY;
+        return responseBuilder;
+      }
+    } catch (EOFException e) {
+      String address = connection.route().address().url().redact();
+      throw new IOException("unexpected end of stream on " + address, e);
+    }
+  }
+
+  private Sink newChunkedSink() {
+    if (state != STATE_OPEN_REQUEST_BODY) {
+      throw new IllegalStateException("state: " + state);
+    }
+    state = STATE_WRITING_REQUEST_BODY;
+    return new ChunkedSink();
+  }
+
+private Sink newKnownLengthSink() {
+    if (state != STATE_OPEN_REQUEST_BODY) {
+        throw new IllegalStateException("state: " + state);
+    }
+    state = STATE_WRITING_REQUEST_BODY;
+    return new KnownLengthSink();
+}
+
+  private Source newFixedLengthSource(long length) {
+    if (state != STATE_OPEN_RESPONSE_BODY) {
+      throw new IllegalStateException("state: " + state);
+    }
+    state = STATE_READING_RESPONSE_BODY;
+    return new FixedLengthSource(length);
+  }
+
+  private Source newChunkedSource(HttpUrl url) {
+    if (state != STATE_OPEN_RESPONSE_BODY) {
+      throw new IllegalStateException("state: " + state);
+    }
+    state = STATE_READING_RESPONSE_BODY;
+    return new ChunkedSource(url);
+  }
+
+  private Source newUnknownLengthSource() {
+    if (state != STATE_OPEN_RESPONSE_BODY) {
+      throw new IllegalStateException("state: " + state);
+    }
+    state = STATE_READING_RESPONSE_BODY;
+    connection.noNewExchanges();
+    return new UnknownLengthSource();
+  }
+
+  private void detachTimeout(ForwardingTimeout timeout) {
+    Timeout oldDelegate = timeout.delegate();
+    timeout.setDelegate(Timeout.NONE);
+    oldDelegate.clearDeadline();
+    oldDelegate.clearTimeout();
+  }
+
+  public void skipConnectBody(Response response) throws IOException {
+    long contentLength = response.headersContentLength();
+    if (contentLength == -1) return;
+    Source body = newFixedLengthSource(contentLength);
+    body.skipAll(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
+    body.close();
+  }
+
+  private class KnownLengthSink extends Sink {
+    private final ForwardingTimeout timeout;
+    private boolean closed;
+    private long bytesWritten;
+
+    public KnownLengthSink(long contentLength) {
+      this.timeout = new ForwardingTimeout(sink.timeout());
+      this.bytesWritten = 0;
+    }
+
+    @Override
+    public Timeout timeout() {
+      return timeout;
+    }
+
+    @Override
+    public void write(Buffer source, long byteCount) throws IOException {
+      if (closed) throw new IllegalStateException("closed");
+      if (byteCount == 0) return;
+
+      sink.write(source, byteCount);
+      bytesWritten += byteCount;
+    }
+
+    @Override
+    public void flush() throws IOException {
+      if (closed) return;
+      sink.flush();
+    }
+
+    @Override
+    public void close() throws IOException {
+      if (closed) return;
+      closed = true;
+      detachTimeout(timeout);
+      state = STATE_READ_RESPONSE_HEADERS;
+    }
+  }
+
+  private class ChunkedSink extends Sink {
+    private final ForwardingTimeout timeout;
+    private boolean closed;
+
+    public ChunkedSink() {
+      this.timeout = new ForwardingTimeout(sink.timeout());
+      this.closed = false;
+    }
+
+    @Override
+    public Timeout timeout() {
+      return timeout;
+    }
+
+    @Override
+    public void write(Buffer source, long byteCount) throws IOException {
+      if (closed) throw new IllegalStateException("closed");
+      if (byteCount == 0) return;
+
+      sink.writeHexadecimalUnsignedLong(byteCount);
+      sink.writeUtf8("\r\n");
+      sink.write(source, byteCount);
+      sink.writeUtf8("\r\n");
+    }
+
+    @Override
+    public void flush() throws IOException {
+      if (closed) return;
+      sink.flush();
+    }
+
+    @Override
+    public void close() throws IOException {
+      if (closed) return;
+      closed = true;
+      sink.writeUtf8("0\r\n\r\n");
+      detachTimeout(timeout);
+      state = STATE_READ_RESPONSE_HEADERS;
+    }
+  }
+
+  private abstract class AbstractSource extends Source {
+    protected final ForwardingTimeout timeout;
+    protected boolean closed;
+    protected long bytesRead;
+
+    public AbstractSource() {
+      this.timeout = new ForwardingTimeout(source.timeout());
+      this.closed = false;
+      this.bytesRead = 0;
+    }
+
+    @Override
+    public Timeout timeout() {
+      return timeout;
+    }
+
+    @Override
+    public long read(Buffer sink, long byteCount) throws IOException {
+      if (closed) return -1;
+
+      long read = source.read(sink, byteCount);
+      if (read != -1) {
+        bytesRead += read;
+      }
+      return read;
+    }
+
+    public void responseBodyComplete() {
+      if (state == STATE_CLOSED) return;
+      if (state != STATE_READING_RESPONSE_BODY) throw new IllegalStateException("state: " + state);
+
+      detachTimeout(timeout);
+
+      state = STATE_CLOSED;
+    }
+  }
+
+  private class FixedLengthSource extends AbstractSource {
+    private final long bytesRemaining;
+
+    public FixedLengthSource(long contentLength) {
+      super();
+      this.bytesRemaining = contentLength;
+      if (bytesRemaining == 0) {
+        responseBodyComplete();
+      }
+    }
+
+    @Override
+    public long read(Buffer sink, long byteCount) throws IOException {
+      if (byteCount < 0) throw new IllegalArgumentException("byteCount < 0: " + byteCount);
+      if (closed) throw new IllegalStateException("closed");
+      if (bytesRemaining == 0) return -1;
+
+      long read = super.read(sink, Math.min(bytesRemaining, byteCount));
+      if (read == -1) {
+        connection.noNewExchanges();
+        throw new ProtocolException("unexpected end of stream");
+      }
+
+      bytesRemaining -= read;
+      if (bytesRemaining == 0) {
+        responseBodyComplete();
+      }
+      return read;
+    }
+
+    @Override
+    public void close() throws IOException {
+      if (closed) return;
+
+      if (bytesRemaining != 0 && !discard(ExchangeCodec.DISCARD_STREAM_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+        connection.noNewExchanges();
+        responseBodyComplete();
+      }
+
+      closed = true;
+    }
+  }
+
+  private class ChunkedSource extends AbstractSource {
+    private long bytesRemainingInChunk = NO_CHUNK_YET;
+    private boolean hasMoreChunks;
+
+    public ChunkedSource(HttpUrl url) {
+      super();
+      readChunkSize();
+    }
+
+    @Override
+    public long read(Buffer sink, long byteCount) throws IOException {
+      if (byteCount < 0) throw new IllegalArgumentException("byteCount < 0: " + byteCount);
+      if (closed) return -1;
+      if (!hasMoreChunks) return -1;
+
+      if (bytesRemainingInChunk == 0 || bytesRemainingInChunk == NO_CHUNK_YET) {
+        readChunkSize();
+        if (!hasMoreChunks) return -1;
+      }
+
+      long read = super.read(sink, Math.min(byteCount, bytesRemainingInChunk));
+      if (read == -1) {
+        connection.noNewExchanges();
+        throw new ProtocolException("unexpected end of stream");
+      }
+      bytesRemainingInChunk -= read;
+      return read;
+    }
+
+    private void readChunkSize() throws IOException {
+      if (bytesRemainingInChunk != NO_CHUNK_YET) {
+        headersReader.readUtf8LineStrict();
+      }
+      try {
+        bytesRemainingInChunk = headersReader.readHexadecimalUnsignedLong();
+        String extensions = headersReader.readUtf8LineStrict().trim();
+        if (bytesRemainingInChunk < 0 || (!extensions.isEmpty() && !extensions.startsWith(";"))) {
+          throw new ProtocolException("expected chunk size and optional extensions" +
+              " but was \"" + bytesRemainingInChunk + extensions + '"');
+        }
+      } catch (NumberFormatException e) {
+        throw new ProtocolException(e.getMessage());
+      }
+
+      if (bytesRemainingInChunk == 0) {
+        hasMoreChunks = false;
+        trailers = headersReader.readHeaders();
+        client.cookieJar().receiveHeaders(url, trailers);
+        responseBodyComplete();
+      }
+    }
+
+    @Override
+    public void close() throws IOException {
+      if (closed) return;
+      if (hasMoreChunks && !discard(ExchangeCodec.DISCARD_STREAM_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+        connection.noNewExchanges();
+        responseBodyComplete();
+      }
+      closed = true;
+    }
+  }
+
+  private class UnknownLengthSource extends AbstractSource {
+    private boolean inputExhausted;
+
+    @Override
+    public long read(Buffer sink, long byteCount) throws IOException {
+      if (byteCount < 0) throw new IllegalArgumentException("byteCount < 0: " + byteCount);
+      if (closed) return -1;
+      if (inputExhausted) return -1;
+
+      long read = super.read(sink, byteCount);
+      if (read == -1) {
+        inputExhausted = true;
+        responseBodyComplete();
+        return -1;
+      }
+      return read;
+    }
+
+    @Override
+    public void close() throws IOException {
+      if (closed) return;
+      if (!inputExhausted) {
+        responseBodyComplete();
+      }
+      closed = true;
+    }
+  }
+}

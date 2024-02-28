@@ -134,7 +134,6 @@ class ScheduleViewModel extends ViewModel implements ScheduleEventListener, Sign
             LoadSelectedFiltersUseCase loadSelectedFiltersUseCase,
             SaveSelectedFiltersUseCase saveSelectedFiltersUseCase,
             AnalyticsHelper analyticsHelper,
-            ThemedActivityDelegate themedActivityDelegate
     ) {
         this.loadUserSessionsByDayUseCase = loadUserSessionsByDayUseCase;
         this.loadAgendaUseCase = loadAgendaUseCase;

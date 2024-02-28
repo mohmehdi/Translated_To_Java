@@ -1,4 +1,3 @@
-
 package com.google.samples.apps.iosched.ui.schedule;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -607,7 +606,10 @@ public class ScheduleViewModelTest {
     );
   }
 
-  private static class BootstrapDataSourceSession3
+  
+}
+
+class BootstrapDataSourceSession3
     implements ConferenceDataSource {
 
     @Override
@@ -626,4 +628,3 @@ public class ScheduleViewModelTest {
       );
     }
   }
-}

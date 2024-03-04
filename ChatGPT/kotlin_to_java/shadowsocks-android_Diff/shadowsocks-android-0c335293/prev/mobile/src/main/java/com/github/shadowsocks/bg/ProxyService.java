@@ -16,7 +16,7 @@ public class ProxyService extends Service implements BaseService.Interface {
 
     @Override
     public ServiceNotification createNotification() {
-        return new ServiceNotification(this, data.getProfile().getFormattedName(), "service-proxy", true);
+        return new ServiceNotification(this, data.profile.formattedName, "service-proxy", true);
     }
 
     @Override

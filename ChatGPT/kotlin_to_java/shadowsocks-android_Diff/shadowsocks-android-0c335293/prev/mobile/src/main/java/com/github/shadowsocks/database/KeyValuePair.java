@@ -17,11 +17,11 @@ public class KeyValuePair {
     public static final int TYPE_STRING_SET = 6;
 
     @DatabaseField(id = true)
-    private String key = "";
+    public String key = "";
     @DatabaseField
-    private int valueType = TYPE_UNINITIALIZED;
+    public int valueType = TYPE_UNINITIALIZED;
     @DatabaseField(dataType = DataType.BYTE_ARRAY)
-    private byte[] value = new byte[0];
+    public byte[] value = new byte[0];
 
     public Boolean getBoolean() {
         if (valueType == TYPE_BOOLEAN) {

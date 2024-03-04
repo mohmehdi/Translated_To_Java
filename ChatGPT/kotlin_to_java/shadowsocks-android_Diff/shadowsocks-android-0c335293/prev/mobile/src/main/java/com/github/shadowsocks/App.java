@@ -43,36 +43,20 @@ import java.io.IOException;
 import java.util.Locale;
 
 public class App extends Application {
+
     private static App app;
     private static final String TAG = "ShadowsocksApplication";
 
-    private final Locale SIMPLIFIED_CHINESE = Build.VERSION.SDK_INT >= 21 ? Locale.forLanguageTag("zh-Hans-CN") : Locale.SIMPLIFIED_CHINESE;
-    private final Locale TRADITIONAL_CHINESE = Build.VERSION.SDK_INT >= 21 ? Locale.forLanguageTag("zh-Hant-TW") : Locale.TRADITIONAL_CHINESE;
+    private static final Locale SIMPLIFIED_CHINESE = Build.VERSION.SDK_INT >= 21 ?
+            Locale.forLanguageTag("zh-Hans-CN") : Locale.SIMPLIFIED_CHINESE;
 
-    private Handler handler;
-    private FirebaseRemoteConfig remoteConfig;
-    private Tracker tracker;
-    private PackageInfo info;
+    private static final Locale TRADITIONAL_CHINESE = Build.VERSION.SDK_INT >= 21 ?
+            Locale.forLanguageTag("zh-Hant-TW") : Locale.TRADITIONAL_CHINESE;
 
-    public static App getApp() {
-        return app;
-    }
-
-    public Handler getHandler() {
-        return handler;
-    }
-
-    public FirebaseRemoteConfig getRemoteConfig() {
-        return remoteConfig;
-    }
-
-    public Tracker getTracker() {
-        return tracker;
-    }
-
-    public PackageInfo getInfo() {
-        return info;
-    }
+    private static final Handler handler = new Handler(Looper.getMainLooper());
+    private static final FirebaseRemoteConfig remoteConfig = FirebaseRemoteConfig.getInstance();
+    private static final Tracker tracker = GoogleAnalytics.getInstance(app).newTracker(R.xml.tracker);
+    private static final PackageInfo info = app.getPackageManager().getPackageInfo(app.getPackageName(), PackageManager.GET_SIGNATURES);
 
     public void startService() {
         Intent intent = new Intent(this, BaseService.getServiceClass());
@@ -174,11 +158,9 @@ public class App extends Application {
                 getResources().updateConfiguration(newConfig, getResources().getDisplayMetrics());
             }
         } else {
-            @SuppressWarnings("deprecation")
             Locale newLocale = check(config.locale);
             if (newLocale != null) {
                 Configuration newConfig = new Configuration(config);
-                @SuppressWarnings("deprecation")
                 newConfig.locale = newLocale;
                 getResources().updateConfiguration(newConfig, getResources().getDisplayMetrics());
             }
@@ -214,26 +196,22 @@ public class App extends Application {
 
         if (DataStore.getLong(Key.assetUpdateTime, -1) != info.lastUpdateTime) {
             try {
-                String[] dirs = {"acl", "overture"};
-                for (String dir : dirs) {
+                for (String dir : new String[]{"acl", "overture"}) {
                     String[] files = getAssets().list(dir);
                     for (String file : files) {
                         try {
-                            File outFile = new File(getFilesDir(), file);
-                            getAssets().open(dir + '/' + file).use(input -> {
-                                outFile.createNewFile();
-                                outFile.setReadable(true, false);
-                                outFile.setWritable(true, false);
-                                outFile.setExecutable(true, false);
-                                outFile.setLastModified(System.currentTimeMillis());
-                                try (FileOutputStream output = new FileOutputStream(outFile)) {
-                                    byte[] buffer = new byte[4096];
-                                    int bytesRead;
-                                    while ((bytesRead = input.read(buffer)) != -1) {
-                                        output.write(buffer, 0, bytesRead);
-                                    }
-                                }
-                            });
+                            File outputFile = new File(getFilesDir(), file);
+                            File inputFile = new File(dir + '/' + file);
+                            InputStream input = getAssets().open(inputFile);
+                            OutputStream output = new FileOutputStream(outputFile);
+                            byte[] buffer = new byte[1024];
+                            int length;
+                            while ((length = input.read(buffer)) > 0) {
+                                output.write(buffer, 0, length);
+                            }
+                            output.flush();
+                            output.close();
+                            input.close();
                         } catch (IOException e) {
                             Log.e(TAG, e.getMessage());
                             app.track(e);

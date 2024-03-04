@@ -7,7 +7,7 @@ import com.github.shadowsocks.preference.DataStore;
 import java.io.File;
 
 public class TransproxyService extends Service implements LocalDnsService.Interface {
-    public TransproxyService() {
+    {
         BaseService.register(this);
     }
 

@@ -3,6 +3,7 @@ package com.github.shadowsocks.database;
 import android.database.sqlite.SQLiteDatabase;
 import android.support.v7.preference.PreferenceManager;
 import android.text.TextUtils;
+
 import com.github.shadowsocks.App;
 import com.github.shadowsocks.utils.Key;
 import com.j256.ormlite.android.AndroidDatabaseConnection;
@@ -21,6 +22,12 @@ public class DBHelper extends OrmLiteSqliteOpenHelper {
     public DBHelper() {
         super(App.Companion.getApp(), DATABASE_NAME, null, DATABASE_VERSION);
     }
+
+    @SuppressWarnings("unchecked")
+    private Dao<Profile, Integer> profileDao = Lazy.of(() -> getDao(Profile.class)).get();
+    @SuppressWarnings("unchecked")
+    private Dao<KeyValuePair, String> kvPairDao = Lazy.of(() -> getDao(KeyValuePair.class)).get();
+
 
     @Override
     public void onCreate(SQLiteDatabase database, ConnectionSource connectionSource) {

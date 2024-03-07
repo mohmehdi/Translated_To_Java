@@ -34,8 +34,7 @@ public abstract class ActivityBindingModule {
     public abstract OnboardingActivity onboardingActivity();
 
     @ActivityScoped
-    @ContributesAndroidInjector(
-        modules = {
+    @ContributesAndroidInjector(modules = {
             MainActivityModule.class,
             ScheduleModule.class,
             MapModule.class,
@@ -43,38 +42,31 @@ public abstract class ActivityBindingModule {
             SignInDialogModule.class,
             ReservationModule.class,
             PreferenceModule.class
-        }
-    )
+    })
     public abstract MainActivity mainActivity();
 
     @ActivityScoped
-    @ContributesAndroidInjector(
-        modules = {
+    @ContributesAndroidInjector(modules = {
             SessionDetailModule.class,
             SignInDialogModule.class,
             ReservationModule.class,
             PreferenceModule.class
-        }
-    )
+    })
     public abstract SessionDetailActivity sessionDetailActivity();
 
     @ActivityScoped
-    @ContributesAndroidInjector(
-        modules = {
+    @ContributesAndroidInjector(modules = {
             SpeakerModule.class,
             SignInDialogModule.class,
             EventActionsViewModelDelegateModule.class,
             PreferenceModule.class
-        }
-    )
+    })
     public abstract SpeakerActivity speakerActivity();
 
     @ActivityScoped
-    @ContributesAndroidInjector(
-        modules = {
+    @ContributesAndroidInjector(modules = {
             MapModule.class,
             PreferenceModule.class
-        }
-    )
+    })
     public abstract MapActivity mapActivity();
 }

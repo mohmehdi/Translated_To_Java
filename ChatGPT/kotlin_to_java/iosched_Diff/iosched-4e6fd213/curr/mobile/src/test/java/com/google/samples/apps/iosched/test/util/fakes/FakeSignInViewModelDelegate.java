@@ -26,15 +26,15 @@ public class FakeSignInViewModelDelegate implements SignInViewModelDelegate {
     }
 
     @Override
-    public void observeSignedInUser() {
+    public MutableLiveData<Boolean> observeSignedInUser() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override
     public MutableLiveData<Boolean> observeRegisteredUser() {
-        MutableLiveData<Boolean> registeredUser = new MutableLiveData<>();
-        registeredUser.setValue(injectIsSignedIn);
-        return registeredUser;
+        MutableLiveData<Boolean> data = new MutableLiveData<>();
+        data.setValue(injectIsSignedIn);
+        return data;
     }
 
     @Override
@@ -59,10 +59,10 @@ public class FakeSignInViewModelDelegate implements SignInViewModelDelegate {
 
     public void loadUser(String id) {
         AuthenticatedUserInfo mockUser = mock(AuthenticatedUserInfo.class);
-        doReturn(id).when(mockUser).getUid();
-        doReturn(mock(Uri.class)).when(mockUser).getPhotoUrl();
-        doReturn(true).when(mockUser).isSignedIn();
-        doReturn(true).when(mockUser).isRegistrationDataReady();
+        doReturn(id).`when`(mockUser).getUid();
+        doReturn(mock(Uri.class)).`when`(mockUser).getPhotoUrl();
+        doReturn(true).`when`(mockUser).isSignedIn();
+        doReturn(true).`when`(mockUser).isRegistrationDataReady();
         currentUserInfo.postValue(mockUser);
     }
 }

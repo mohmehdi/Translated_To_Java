@@ -16,6 +16,7 @@ import javax.inject.Singleton;
 
 @Module
 public class SignInModule {
+
     @Provides
     public SignInHandler provideSignInHandler() {
         return new FirebaseAuthSignInHandler();

@@ -33,9 +33,9 @@ public class FakeSignInViewModelDelegate implements SignInViewModelDelegate {
 
     @Override
     public MutableLiveData<Boolean> observeRegisteredUser() {
-        MutableLiveData<Boolean> registeredUser = new MutableLiveData<>();
-        registeredUser.setValue(injectIsSignedIn);
-        return registeredUser;
+        MutableLiveData<Boolean> data = new MutableLiveData<>();
+        data.setValue(injectIsSignedIn);
+        return data;
     }
 
     @Override
@@ -56,10 +56,7 @@ public class FakeSignInViewModelDelegate implements SignInViewModelDelegate {
     @Override
     public String getUserId() {
         Result<AuthenticatedUserInfo> user = currentFirebaseUser.getValue();
-        if (user instanceof Result.Success) {
-            return ((Result.Success<AuthenticatedUserInfo>) user).getData().getUid();
-        }
-        return null;
+        return ((Result.Success) user).getData().getUid();
     }
 
     public void loadUser(String id) {

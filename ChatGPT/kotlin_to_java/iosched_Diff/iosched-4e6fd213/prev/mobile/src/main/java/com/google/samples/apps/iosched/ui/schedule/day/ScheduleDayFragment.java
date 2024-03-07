@@ -51,7 +51,13 @@ public class ScheduleDayFragment extends DaggerFragment {
     @Named("tagViewPool")
     RecycledViewPool tagViewPool;
 
-    private int conferenceDay;
+    private final int conferenceDay = lazyFast(() -> {
+        Bundle args = getArguments();
+        if (args == null) {
+            throw new IllegalStateException("Missing arguments!");
+        }
+        return args.getInt(ARG_CONFERENCE_DAY);
+    });
 
     private ScheduleDayAdapter adapter;
 
@@ -66,29 +72,35 @@ public class ScheduleDayFragment extends DaggerFragment {
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
-        adapter = new ScheduleDayAdapter(viewModel, tagViewPool, viewModel.showReservations, viewModel.timeZoneId, this);
+        adapter = new ScheduleDayAdapter(
+                viewModel,
+                tagViewPool,
+                viewModel.showReservations,
+                viewModel.timeZoneId,
+                this
+        );
 
         binding.recyclerview.setAdapter(adapter);
         binding.recyclerview.setRecycledViewPool(sessionViewPool);
         ((LinearLayoutManager) binding.recyclerview.getLayoutManager()).setRecycleChildrenOnDetach(true);
-        DefaultItemAnimator itemAnimator = (DefaultItemAnimator) binding.recyclerview.getItemAnimator();
-        itemAnimator.setSupportsChangeAnimations(false);
-        itemAnimator.setAddDuration(160L);
-        itemAnimator.setMoveDuration(160L);
-        itemAnimator.setChangeDuration(160L);
-        itemAnimator.setRemoveDuration(120L);
+        ((DefaultItemAnimator) binding.recyclerview.getItemAnimator()).setSupportsChangeAnimations(false);
+        ((DefaultItemAnimator) binding.recyclerview.getItemAnimator()).setAddDuration(160L);
+        ((DefaultItemAnimator) binding.recyclerview.getItemAnimator()).setMoveDuration(160L);
+        ((DefaultItemAnimator) binding.recyclerview.getItemAnimator()).setChangeDuration(160L);
+        ((DefaultItemAnimator) binding.recyclerview.getItemAnimator()).setRemoveDuration(120L);
 
-        viewModel.getCurrentEvent().observe(this, new Observer<EventLocation>() {
-            @Override
-            public void onChanged(EventLocation eventLocation) {
-                if (eventLocation != null && !viewModel.getUserHasInteracted() && eventLocation.getDay() == conferenceDay && eventLocation.getSessionIndex() != -1) {
-                    binding.recyclerview.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            ((LinearLayoutManager) binding.recyclerview.getLayoutManager()).scrollToPositionWithOffset(eventLocation.getSessionIndex(), getResources().getDimensionPixelSize(R.dimen.margin_normal));
-                        }
-                    });
-                }
+        viewModel.getCurrentEvent().observe(this, eventLocation -> {
+            if (eventLocation != null &&
+                    !viewModel.getUserHasInteracted() &&
+                    eventLocation.getDay() == conferenceDay &&
+                    eventLocation.getSessionIndex() != -1
+            ) {
+                binding.recyclerview.post(() -> {
+                    ((LinearLayoutManager) binding.recyclerview.getLayoutManager()).scrollToPositionWithOffset(
+                            eventLocation.getSessionIndex(),
+                            getResources().getDimensionPixelSize(R.dimen.margin_normal)
+                    );
+                });
             }
         });
     }
@@ -97,52 +109,42 @@ public class ScheduleDayFragment extends DaggerFragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         final Activity activity = requireActivity();
-        viewModel.getSessionTimeDataForDay(conferenceDay).observe(activity, new Observer<SessionTimeData>() {
-            @Override
-            public void onChanged(SessionTimeData sessionTimeData) {
-                if (sessionTimeData == null) {
-                    return;
-                }
-                initializeList(sessionTimeData);
+        viewModel.getSessionTimeDataForDay(conferenceDay).observe(activity, sessionTimeData -> {
+            if (sessionTimeData == null) {
+                return;
             }
+            initializeList(sessionTimeData);
         });
 
-        viewModel.getErrorMessage().observe(this, new EventObserver<String>() {
-            @Override
-            public void onEvent(String errorMsg) {
-                Toast.makeText(getContext(), errorMsg, Toast.LENGTH_LONG).show();
-            }
+        viewModel.getErrorMessage().observe(this, errorMsg -> {
+            Toast.makeText(getContext(), errorMsg, Toast.LENGTH_LONG).show();
         });
     }
 
     private void initializeList(SessionTimeData sessionTimeData) {
-        List<Session> list = sessionTimeData.getList();
+        List list = sessionTimeData.getList();
+        if (list == null) {
+            return;
+        }
         String timeZoneId = sessionTimeData.getTimeZoneId();
-        if (list == null || timeZoneId == null) {
+        if (timeZoneId == null) {
             return;
         }
         adapter.submitList(list);
 
-        binding.recyclerview.doOnNextLayout(new Runnable() {
-            @Override
-            public void run() {
-                clearDecorations();
-                if (!list.isEmpty()) {
-                    addItemDecoration(new ScheduleTimeHeadersDecoration(getContext(), list.map(new Function<Session, Session>() {
-                        @Override
-                        public Session apply(Session session) {
-                            return session;
-                        }
-                    }), timeZoneId));
-                }
+        binding.recyclerview.doOnNextLayout(() -> {
+            clearDecorations();
+            if (!list.isEmpty()) {
+                addItemDecoration(
+                        new ScheduleTimeHeadersDecoration(
+                                getContext(), list.stream().map(it -> it.getSession()).collect(Collectors.toList()), timeZoneId
+                        )
+                );
             }
         });
 
-        binding.executeAfter(new Runnable() {
-            @Override
-            public void run() {
-                isEmpty = list.isEmpty();
-            }
+        binding.executeAfter(() -> {
+            isEmpty = list.isEmpty();
         });
     }
 }

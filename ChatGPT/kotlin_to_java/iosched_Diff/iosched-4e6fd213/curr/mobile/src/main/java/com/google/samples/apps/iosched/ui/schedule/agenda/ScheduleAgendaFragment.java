@@ -39,20 +39,17 @@ public class ScheduleAgendaFragment extends DaggerFragment {
     }
 }
 
-public class ScheduleAgendaBindingAdapter {
+@BindingAdapter(value = {"agendaItems", "timeZoneId"})
+public static void agendaItems(RecyclerView recyclerView, List<Block> list, ZoneId timeZoneId) {
+    if (recyclerView.getAdapter() == null) {
+        recyclerView.setAdapter(new ScheduleAgendaAdapter());
+    }
+    ScheduleAgendaAdapter adapter = (ScheduleAgendaAdapter) recyclerView.getAdapter();
+    adapter.submitList(list != null ? list : Collections.emptyList());
+    adapter.setTimeZoneId(timeZoneId != null ? timeZoneId : ZoneId.systemDefault());
 
-    @BindingAdapter(value = {"agendaItems", "timeZoneId"})
-    public static void agendaItems(RecyclerView recyclerView, List<Block> list, ZoneId timeZoneId) {
-        if (recyclerView.getAdapter() == null) {
-            recyclerView.setAdapter(new ScheduleAgendaAdapter());
-        }
-        ScheduleAgendaAdapter adapter = (ScheduleAgendaAdapter) recyclerView.getAdapter();
-        adapter.submitList(list != null ? list : Collections.emptyList());
-        adapter.timeZoneId = timeZoneId != null ? timeZoneId : ZoneId.systemDefault();
-
-        recyclerView.clearDecorations();
-        if (list != null && !list.isEmpty()) {
-            recyclerView.addItemDecoration(new ScheduleAgendaHeadersDecoration(recyclerView.getContext(), list));
-        }
+    recyclerView.clearDecorations();
+    if (list != null && !list.isEmpty()) {
+        recyclerView.addItemDecoration(new ScheduleAgendaHeadersDecoration(recyclerView.getContext(), list));
     }
 }

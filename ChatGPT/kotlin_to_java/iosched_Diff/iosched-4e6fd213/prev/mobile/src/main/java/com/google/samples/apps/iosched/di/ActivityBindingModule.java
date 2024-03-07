@@ -26,53 +26,53 @@ public abstract class ActivityBindingModule {
 
     @ActivityScoped
     @ContributesAndroidInjector(modules = {LaunchModule.class})
-    public abstract LauncherActivity launcherActivity();
+    protected abstract LauncherActivity launcherActivity();
 
     @ActivityScoped
     @ContributesAndroidInjector(modules = {OnboardingModule.class})
-    public abstract OnboardingActivity onboardingActivity();
+    protected abstract OnboardingActivity onboardingActivity();
 
     @ActivityScoped
     @ContributesAndroidInjector(
-        modules = {
-            ScheduleModule.class,
-            MapModule.class,
-            InfoModule.class,
-            SignInDialogModule.class,
-            ReservationModule.class,
-            PreferenceModule.class
-        }
+            modules = {
+                    ScheduleModule.class,
+                    MapModule.class,
+                    InfoModule.class,
+                    SignInDialogModule.class,
+                    ReservationModule.class,
+                    PreferenceModule.class
+            }
     )
-    public abstract MainActivity mainActivity();
+    protected abstract MainActivity mainActivity();
 
     @ActivityScoped
     @ContributesAndroidInjector(
-        modules = {
-            SessionDetailModule.class,
-            SignInDialogModule.class,
-            ReservationModule.class,
-            PreferenceModule.class
-        }
+            modules = {
+                    SessionDetailModule.class,
+                    SignInDialogModule.class,
+                    ReservationModule.class,
+                    PreferenceModule.class
+            }
     )
-    public abstract SessionDetailActivity sessionDetailActivity();
+    protected abstract SessionDetailActivity sessionDetailActivity();
 
     @ActivityScoped
     @ContributesAndroidInjector(
-        modules = {
-            SpeakerModule.class,
-            SignInDialogModule.class,
-            EventActionsViewModelDelegateModule.class,
-            PreferenceModule.class
-        }
+            modules = {
+                    SpeakerModule.class,
+                    SignInDialogModule.class,
+                    EventActionsViewModelDelegateModule.class,
+                    PreferenceModule.class
+            }
     )
-    public abstract SpeakerActivity speakerActivity();
+    protected abstract SpeakerActivity speakerActivity();
 
     @ActivityScoped
     @ContributesAndroidInjector(
-        modules = {
-            MapModule.class,
-            PreferenceModule.class
-        }
+            modules = {
+                    MapModule.class,
+                    PreferenceModule.class
+            }
     )
-    public abstract MapActivity mapActivity();
+    protected abstract MapActivity mapActivity();
 }

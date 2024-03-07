@@ -7,14 +7,18 @@ import com.google.samples.apps.iosched.test.util.fakes.FakeSignInViewModelDelega
 import com.google.samples.apps.iosched.test.util.fakes.FakeThemedActivityDelegate;
 import com.google.samples.apps.iosched.ui.signin.SignInViewModelDelegate;
 import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
+
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
 public class MainActivityViewModelTest {
 
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
+
 
     @Rule
     public SyncTaskExecutorRule syncTaskExecutorRule = new SyncTaskExecutorRule();
@@ -30,13 +34,12 @@ public class MainActivityViewModelTest {
 
         FakeSignInViewModelDelegate signInViewModelDelegate = new FakeSignInViewModelDelegate();
         signInViewModelDelegate.injectIsSignedIn = false;
-        MainActivityViewModel viewModel =
-                createMainActivityViewModel(signInViewModelDelegate, new FakeThemedActivityDelegate());
+        MainActivityViewModel viewModel = createMainActivityViewModel(signInViewModelDelegate, new FakeThemedActivityDelegate());
 
         viewModel.onProfileClicked();
 
-        Event signOutEvent = LiveDataTestUtil.getValue(viewModel.navigateToSignInDialogAction);
-        Assert.assertThat(signOutEvent.getContentIfNotHandled(), Matchers.notNullValue());
+        LiveDataTestUtil.getValue(viewModel.navigateToSignInDialogAction);
+        assertThat(viewModel.navigateToSignInDialogAction.getValue().getContentIfNotHandled(), is(notNullValue()));
     }
 
     @Test
@@ -44,12 +47,11 @@ public class MainActivityViewModelTest {
 
         FakeSignInViewModelDelegate signInViewModelDelegate = new FakeSignInViewModelDelegate();
         signInViewModelDelegate.injectIsSignedIn = true;
-        MainActivityViewModel viewModel =
-                createMainActivityViewModel(signInViewModelDelegate, new FakeThemedActivityDelegate());
+        MainActivityViewModel viewModel = createMainActivityViewModel(signInViewModelDelegate, new FakeThemedActivityDelegate());
 
         viewModel.onProfileClicked();
 
-        Event signOutEvent = LiveDataTestUtil.getValue(viewModel.navigateToSignOutDialogAction);
-        Assert.assertThat(signOutEvent.getContentIfNotHandled(), Matchers.notNullValue());
+        LiveDataTestUtil.getValue(viewModel.navigateToSignOutDialogAction);
+        assertThat(viewModel.navigateToSignOutDialogAction.getValue().getContentIfNotHandled(), is(notNullValue()));
     }
 }

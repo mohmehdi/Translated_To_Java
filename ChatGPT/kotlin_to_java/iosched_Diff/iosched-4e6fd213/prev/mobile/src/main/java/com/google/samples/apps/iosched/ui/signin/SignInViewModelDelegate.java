@@ -9,14 +9,16 @@ import com.google.samples.apps.iosched.shared.domain.auth.ObserveUserAuthStateUs
 import com.google.samples.apps.iosched.shared.domain.prefs.NotificationsPrefIsShownUseCase;
 import com.google.samples.apps.iosched.shared.result.Event;
 import com.google.samples.apps.iosched.shared.result.Result;
+import com.google.samples.apps.iosched.shared.result.Result.Success;
 import com.google.samples.apps.iosched.shared.util.map;
+import com.google.samples.apps.iosched.ui.signin.SignInEvent;
 import javax.inject.Inject;
 
-public enum SignInEvent {
+enum SignInEvent {
     RequestSignIn, RequestSignOut
 }
 
-public interface SignInViewModelDelegate {
+interface SignInViewModelDelegate {
     
     LiveData<Result<AuthenticatedUserInfo>> getCurrentFirebaseUser();
     
@@ -41,70 +43,43 @@ public interface SignInViewModelDelegate {
     String getUserId();
 }
 
-internal class FirebaseSignInViewModelDelegate implements SignInViewModelDelegate {
-    
+class FirebaseSignInViewModelDelegate implements SignInViewModelDelegate {
+
     private MutableLiveData<Event<SignInEvent>> performSignInEvent = new MutableLiveData<>();
     private LiveData<Result<AuthenticatedUserInfo>> currentFirebaseUser;
     private LiveData<Uri> currentUserImageUri;
     private MediatorLiveData<Event<Boolean>> shouldShowNotificationsPrefAction = new MediatorLiveData<>();
-    private LiveData<Boolean> isRegistered;
-    private LiveData<Boolean> isSignedIn;
+    private LiveData<Boolean> _isRegistered;
+    private LiveData<Boolean> _isSignedIn;
     private MutableLiveData<Result<Boolean>> notificationsPrefIsShown = new MutableLiveData<>();
 
     public FirebaseSignInViewModelDelegate(ObserveUserAuthStateUseCase observeUserAuthStateUseCase, NotificationsPrefIsShownUseCase notificationsPrefIsShownUseCase) {
         currentFirebaseUser = observeUserAuthStateUseCase.observe();
 
-        currentUserImageUri = currentFirebaseUser.map(result -> {
-            if (result instanceof Result.Success) {
-                return ((Result.Success<AuthenticatedUserInfo>) result).getData().getPhotoUrl();
-            }
-            return null;
+        currentUserImageUri = map(currentFirebaseUser, result -> {
+            return ((result instanceof Success) ? ((Success<AuthenticatedUserInfo>) result).getData().getPhotoUrl() : null);
         });
 
-        isSignedIn = currentFirebaseUser.map(result -> isSignedIn());
+        _isSignedIn = map(currentFirebaseUser, this::isSignedIn);
 
-        isRegistered = currentFirebaseUser.map(result -> isRegistered());
+        _isRegistered = map(currentFirebaseUser, this::isRegistered);
 
         observeUserAuthStateUseCase.execute(new Object());
 
         shouldShowNotificationsPrefAction.addSource(notificationsPrefIsShown, this::showNotificationPref);
 
-        shouldShowNotificationsPrefAction.addSource(isSignedIn, value -> {
+        shouldShowNotificationsPrefAction.addSource(_isSignedIn, value -> {
             notificationsPrefIsShown.setValue(null);
             notificationsPrefIsShownUseCase.invoke(Unit, notificationsPrefIsShown);
         });
     }
 
     private void showNotificationPref() {
-        boolean result = notificationsPrefIsShown.getValue() instanceof Result.Success &&
-                !((Result.Success<Boolean>) notificationsPrefIsShown.getValue()).getData() &&
-                isSignedIn();
+        boolean result = (((notificationsPrefIsShown.getValue() instanceof Success) ? ((Success<Boolean>) notificationsPrefIsShown.getValue()).getData() : false) && isSignedIn());
 
-        if (result && (shouldShowNotificationsPrefAction.getValue() == null ||
-                !shouldShowNotificationsPrefAction.getValue().hasBeenHandled())
-        ) {
+        if (result && (shouldShowNotificationsPrefAction.getValue() == null || !shouldShowNotificationsPrefAction.getValue().hasBeenHandled())) {
             shouldShowNotificationsPrefAction.setValue(new Event<>(true));
         }
-    }
-
-    @Override
-    public LiveData<Result<AuthenticatedUserInfo>> getCurrentFirebaseUser() {
-        return currentFirebaseUser;
-    }
-
-    @Override
-    public LiveData<Uri> getCurrentUserImageUri() {
-        return currentUserImageUri;
-    }
-
-    @Override
-    public MutableLiveData<Event<SignInEvent>> getPerformSignInEvent() {
-        return performSignInEvent;
-    }
-
-    @Override
-    public LiveData<Event<Boolean>> getShouldShowNotificationsPrefAction() {
-        return shouldShowNotificationsPrefAction;
     }
 
     @Override
@@ -120,29 +95,27 @@ internal class FirebaseSignInViewModelDelegate implements SignInViewModelDelegat
 
     @Override
     public boolean isSignedIn() {
-        return currentFirebaseUser.getValue() instanceof Result.Success &&
-                ((Result.Success<AuthenticatedUserInfo>) currentFirebaseUser.getValue()).getData().isSignedIn();
+        return (((currentFirebaseUser.getValue() instanceof Success) ? ((Success<AuthenticatedUserInfo>) currentFirebaseUser.getValue()).getData().isSignedIn() : false));
     }
 
     @Override
     public boolean isRegistered() {
-        return currentFirebaseUser.getValue() instanceof Result.Success &&
-                ((Result.Success<AuthenticatedUserInfo>) currentFirebaseUser.getValue()).getData().isRegistered();
+        return (((currentFirebaseUser.getValue() instanceof Success) ? ((Success<AuthenticatedUserInfo>) currentFirebaseUser.getValue()).getData().isRegistered() : false));
     }
 
     @Override
     public LiveData<Boolean> observeSignedInUser() {
-        return isSignedIn;
+        return _isSignedIn;
     }
 
     @Override
     public LiveData<Boolean> observeRegisteredUser() {
-        return isRegistered;
+        return _isRegistered;
     }
 
     @Override
     public String getUserId() {
         Result<AuthenticatedUserInfo> user = currentFirebaseUser.getValue();
-        return user instanceof Result.Success ? ((Result.Success<AuthenticatedUserInfo>) user).getData().getUid() : null;
+        return ((user instanceof Success) ? ((Success<AuthenticatedUserInfo>) user).getData().getUid() : null);
     }
 }

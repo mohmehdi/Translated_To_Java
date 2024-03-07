@@ -9,73 +9,78 @@ import com.google.samples.apps.iosched.shared.domain.auth.ObserveUserAuthStateUs
 import com.google.samples.apps.iosched.shared.domain.prefs.NotificationsPrefIsShownUseCase;
 import com.google.samples.apps.iosched.shared.result.Event;
 import com.google.samples.apps.iosched.shared.result.Result;
-import com.google.samples.apps.iosched.shared.result.Result.Success;
 import com.google.samples.apps.iosched.shared.util.map;
-import com.google.samples.apps.iosched.ui.signin.SignInEvent.RequestSignOut;
+import com.google.samples.apps.iosched.ui.signin.SignInEvent;
 import javax.inject.Inject;
 
-public enum SignInEvent {
+import static com.google.samples.apps.iosched.shared.result.Result.Success;
+
+enum SignInEvent {
     RequestSignIn, RequestSignOut
 }
 
-public interface SignInViewModelDelegate {
-    
-    LiveData<AuthenticatedUserInfo> getCurrentUserInfo();
-    
-    LiveData<Uri> getCurrentUserImageUri();
-    
-    MutableLiveData<Event<SignInEvent>> getPerformSignInEvent();
-    
-    LiveData<Event<Boolean>> getShouldShowNotificationsPrefAction();
-    
+interface SignInViewModelDelegate {
+
+    LiveData<AuthenticatedUserInfo> currentUserInfo;
+
+    LiveData<Uri> currentUserImageUri;
+
+    MutableLiveData<Event<SignInEvent>> performSignInEvent;
+
+    LiveData<Event<Boolean>> shouldShowNotificationsPrefAction;
+
     void emitSignInRequest();
-    
+
     void emitSignOutRequest();
-    
+
     LiveData<Boolean> observeSignedInUser();
-    
+
     LiveData<Boolean> observeRegisteredUser();
-    
+
     boolean isSignedIn();
-    
+
     boolean isRegistered();
-    
+
     String getUserId();
 }
 
-internal class FirebaseSignInViewModelDelegate implements SignInViewModelDelegate {
-    
-    private MutableLiveData<Event<SignInEvent>> performSignInEvent = new MutableLiveData<>();
-    private LiveData<AuthenticatedUserInfo> currentUserInfo;
-    private LiveData<Uri> currentUserImageUri;
-    private MediatorLiveData<Event<Boolean>> shouldShowNotificationsPrefAction = new MediatorLiveData<>();
-    private LiveData<Boolean> _isRegistered;
-    private LiveData<Boolean> _isSignedIn;
-    private MutableLiveData<Result<Boolean>> notificationsPrefIsShown = new MutableLiveData<>();
+class FirebaseSignInViewModelDelegate implements SignInViewModelDelegate {
 
-    @Inject
-    public FirebaseSignInViewModelDelegate(ObserveUserAuthStateUseCase observeUserAuthStateUseCase, NotificationsPrefIsShownUseCase notificationsPrefIsShownUseCase) {
-        currentUserInfo = observeUserAuthStateUseCase.observe().map(result -> {
-            if (result instanceof Success) {
-                return ((Success<AuthenticatedUserInfo>) result).getData();
-            }
-            return null;
+    MutableLiveData<Event<SignInEvent>> performSignInEvent;
+    LiveData<AuthenticatedUserInfo> currentUserInfo;
+    LiveData<Uri> currentUserImageUri;
+    MediatorLiveData<Event<Boolean>> shouldShowNotificationsPrefAction;
+
+    LiveData<Boolean> _isRegistered;
+    LiveData<Boolean> _isSignedIn;
+
+    MutableLiveData<Result<Boolean>> notificationsPrefIsShown;
+
+    FirebaseSignInViewModelDelegate(ObserveUserAuthStateUseCase observeUserAuthStateUseCase, NotificationsPrefIsShownUseCase notificationsPrefIsShownUseCase) {
+        this.performSignInEvent = new MutableLiveData<>();
+        this.currentUserInfo = null;
+        this.currentUserImageUri = null;
+        this.shouldShowNotificationsPrefAction = new MediatorLiveData<>();
+
+        this._isRegistered = null;
+        this._isSignedIn = null;
+        this.notificationsPrefIsShown = new MutableLiveData<>();
+
+        this.currentUserInfo = observeUserAuthStateUseCase.observe().map(result -> {
+            return (result instanceof Success) ? ((Success) result).getData() : null;
         });
 
-        currentUserImageUri = currentUserInfo.map(user -> {
-            if (user != null) {
-                return user.getPhotoUrl();
-            }
-            return null;
+        this.currentUserImageUri = currentUserInfo.map(user -> {
+            return (user != null) ? user.getPhotoUrl() : null;
         });
 
-        _isSignedIn = currentUserInfo.map(user -> isSignedIn());
+        this._isSignedIn = currentUserInfo.map(this::isSignedIn);
 
-        _isRegistered = currentUserInfo.map(user -> isRegistered());
+        this._isRegistered = currentUserInfo.map(this::isRegistered);
 
         observeUserAuthStateUseCase.execute(new Object());
 
-        shouldShowNotificationsPrefAction.addSource(notificationsPrefIsShown, value -> showNotificationPref());
+        shouldShowNotificationsPrefAction.addSource(notificationsPrefIsShown, this::showNotificationPref);
 
         shouldShowNotificationsPrefAction.addSource(_isSignedIn, value -> {
             notificationsPrefIsShown.setValue(null);
@@ -84,7 +89,7 @@ internal class FirebaseSignInViewModelDelegate implements SignInViewModelDelegat
     }
 
     private void showNotificationPref() {
-        boolean result = notificationsPrefIsShown.getValue() instanceof Success && ((Success<Boolean>) notificationsPrefIsShown.getValue()).getData() == false && isSignedIn();
+        boolean result = ((notificationsPrefIsShown.getValue() instanceof Success) && !((Boolean) ((Success) notificationsPrefIsShown.getValue()).getData()) && isSignedIn());
 
         if (result && (shouldShowNotificationsPrefAction.getValue() == null || !shouldShowNotificationsPrefAction.getValue().hasBeenHandled())) {
             shouldShowNotificationsPrefAction.setValue(new Event<>(true));
@@ -92,44 +97,25 @@ internal class FirebaseSignInViewModelDelegate implements SignInViewModelDelegat
     }
 
     @Override
-    public LiveData<AuthenticatedUserInfo> getCurrentUserInfo() {
-        return currentUserInfo;
-    }
-
-    @Override
-    public LiveData<Uri> getCurrentUserImageUri() {
-        return currentUserImageUri;
-    }
-
-    @Override
-    public MutableLiveData<Event<SignInEvent>> getPerformSignInEvent() {
-        return performSignInEvent;
-    }
-
-    @Override
-    public LiveData<Event<Boolean>> getShouldShowNotificationsPrefAction() {
-        return shouldShowNotificationsPrefAction;
-    }
-
-    @Override
     public void emitSignInRequest() {
         notificationsPrefIsShownUseCase.invoke(Unit, notificationsPrefIsShown);
+
         performSignInEvent.postValue(new Event<>(SignInEvent.RequestSignIn));
     }
 
     @Override
     public void emitSignOutRequest() {
-        performSignInEvent.postValue(new Event<>(RequestSignOut));
+        performSignInEvent.postValue(new Event<>(SignInEvent.RequestSignOut));
     }
 
     @Override
     public boolean isSignedIn() {
-        return currentUserInfo.getValue() != null && currentUserInfo.getValue().isSignedIn();
+        return (currentUserInfo.getValue() != null) && currentUserInfo.getValue().isSignedIn();
     }
 
     @Override
     public boolean isRegistered() {
-        return currentUserInfo.getValue() != null && currentUserInfo.getValue().isRegistered();
+        return (currentUserInfo.getValue() != null) && currentUserInfo.getValue().isRegistered();
     }
 
     @Override
@@ -144,6 +130,6 @@ internal class FirebaseSignInViewModelDelegate implements SignInViewModelDelegat
 
     @Override
     public String getUserId() {
-        return currentUserInfo.getValue() != null ? currentUserInfo.getValue().getUid() : null;
+        return (currentUserInfo.getValue() != null) ? currentUserInfo.getValue().getUid() : null;
     }
 }

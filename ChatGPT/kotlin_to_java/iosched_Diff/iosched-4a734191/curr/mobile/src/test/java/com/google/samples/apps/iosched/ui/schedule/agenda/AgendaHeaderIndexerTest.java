@@ -25,7 +25,6 @@ public class AgendaHeaderIndexerTest {
                 block.copy(startTime = start.plusDays(2))
         );
 
-
         Map<Integer, ZonedDateTime> grouped = indexAgendaHeaders(sessions);
 
         Assert.assertEquals(3, grouped.size());
@@ -52,7 +51,6 @@ public class AgendaHeaderIndexerTest {
                 block.copy(startTime = dayTwoSevenAM, endTime = dayTwoEightAM)
         );
 
-
         Map<Integer, ZonedDateTime> grouped = indexAgendaHeaders(sessions);
 
         Assert.assertEquals(2, grouped.size());
@@ -61,15 +59,4 @@ public class AgendaHeaderIndexerTest {
         Assert.assertEquals(dayTwoSevenAM, grouped.get(2));
     }
 
-    private Map<Integer, ZonedDateTime> indexAgendaHeaders(List<TestData.Block> sessions) {
-        Map<Integer, ZonedDateTime> grouped = new HashMap<>();
-        int index = 0;
-        for (TestData.Block session : sessions) {
-            if (!grouped.containsValue(session.startTime.toLocalDate())) {
-                grouped.put(index, session.startTime);
-                index += 2;
-            }
-        }
-        return grouped;
-    }
 }

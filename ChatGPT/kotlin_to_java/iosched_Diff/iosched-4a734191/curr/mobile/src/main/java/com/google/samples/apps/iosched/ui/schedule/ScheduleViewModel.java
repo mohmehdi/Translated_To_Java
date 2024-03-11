@@ -43,14 +43,22 @@ public class ScheduleViewModel extends ViewModel implements ScheduleEventListene
     private LiveData<List<Block>> agenda;
 
     @Inject
-    public ScheduleViewModel(LoadSessionsByDayUseCase loadSessionsByDayUseCase,
-                             LoadAgendaUseCase loadAgendaUseCase,
-                             LoadTagsByCategoryUseCase loadTagsByCategoryUseCase) {
+    public ScheduleViewModel(
+            LoadSessionsByDayUseCase loadSessionsByDayUseCase,
+            LoadAgendaUseCase loadAgendaUseCase,
+            LoadTagsByCategoryUseCase loadTagsByCategoryUseCase) {
         this.loadSessionsByDayUseCase = loadSessionsByDayUseCase;
         this.loadAgendaUseCase = loadAgendaUseCase;
         this.loadTagsByCategoryUseCase = loadTagsByCategoryUseCase;
 
         filters = new SessionFilters();
+
+        isLoading = new MutableLiveData<>();
+
+        tags = new MutableLiveData<>();
+
+        errorMessage = new MutableLiveData<>();
+        errorMessageShown = new MutableLiveData<>();
 
         loadSessionsResult = new MutableLiveData<>();
         loadAgendaResult = new MutableLiveData<>();
@@ -60,20 +68,62 @@ public class ScheduleViewModel extends ViewModel implements ScheduleEventListene
         day2Sessions = new MutableLiveData<>();
         day3Sessions = new MutableLiveData<>();
 
-        isLoading = loadSessionsResult.map(result -> result == Result.Loading);
-
-        errorMessage = loadSessionsResult.map(result -> {
-            errorMessageShown.setValue(false);
-            return (result instanceof Result.Error) ? ((Result.Error) result).getException().getMessage() : "";
-        });
-
-        agenda = loadAgendaResult.map(result -> (result instanceof Result.Success) ? ((Result.Success) result).getData() : new ArrayList<>());
-
-        tags = loadTagsResult.map(result -> (result instanceof Result.Success) ? ((Result.Success) result).getData() : new ArrayList<>());
+        agenda = new MutableLiveData<>();
 
         loadSessionsByDayUseCase.invoke(filters, loadSessionsResult);
         loadAgendaUseCase.invoke(loadAgendaResult);
         loadTagsByCategoryUseCase.invoke(loadTagsResult);
+
+        day1Sessions = loadSessionsResult.map(result -> {
+            if (result instanceof Result.Success) {
+                return ((Result.Success<Map<ConferenceDay, List<Session>>>) result).getData().get(DAY_1);
+            } else {
+                return new ArrayList<>();
+            }
+        });
+
+        day2Sessions = loadSessionsResult.map(result -> {
+            if (result instanceof Result.Success) {
+                return ((Result.Success<Map<ConferenceDay, List<Session>>>) result).getData().get(DAY_2);
+            } else {
+                return new ArrayList<>();
+            }
+        });
+
+        day3Sessions = loadSessionsResult.map(result -> {
+            if (result instanceof Result.Success) {
+                return ((Result.Success<Map<ConferenceDay, List<Session>>>) result).getData().get(DAY_3);
+            } else {
+                return new ArrayList<>();
+            }
+        });
+
+        isLoading = loadSessionsResult.map(result -> result == Result.Loading);
+
+        errorMessage = loadSessionsResult.map(result -> {
+            errorMessageShown.setValue(false);
+            if (result instanceof Result.Error) {
+                return ((Result.Error) result).getException().getMessage();
+            } else {
+                return "";
+            }
+        });
+
+        agenda = loadAgendaResult.map(result -> {
+            if (result instanceof Result.Success) {
+                return ((Result.Success<List<Block>>) result).getData();
+            } else {
+                return new ArrayList<>();
+            }
+        });
+
+        tags = loadTagsResult.map(result -> {
+            if (result instanceof Result.Success) {
+                return ((Result.Success<List<Tag>>) result).getData();
+            } else {
+                return new ArrayList<>();
+            }
+        });
     }
 
     public boolean wasErrorMessageShown() {

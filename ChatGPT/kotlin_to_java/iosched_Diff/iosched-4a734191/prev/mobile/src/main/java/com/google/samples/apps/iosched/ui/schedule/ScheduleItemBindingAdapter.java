@@ -2,9 +2,11 @@ package com.google.samples.apps.iosched.ui.schedule;
 
 import android.content.Context;
 import android.widget.TextView;
+
 import com.google.samples.apps.iosched.R;
 import com.google.samples.apps.iosched.shared.model.Session;
-import com.google.samples.apps.iosched.shared.util.duration;
+import com.google.samples.apps.iosched.shared.util.TimeUtils;
+
 import org.threeten.bp.Duration;
 
 public class ScheduleItemBindingAdapter {

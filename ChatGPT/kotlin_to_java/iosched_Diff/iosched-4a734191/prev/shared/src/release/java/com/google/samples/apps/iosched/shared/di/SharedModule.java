@@ -8,6 +8,7 @@ import com.google.samples.apps.iosched.shared.data.tag.RemoteTagDataSource;
 import com.google.samples.apps.iosched.shared.data.tag.TagDataSource;
 import dagger.Module;
 import dagger.Provides;
+
 import javax.inject.Singleton;
 
 @Module

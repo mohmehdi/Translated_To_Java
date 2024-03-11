@@ -38,18 +38,15 @@ public class ScheduleAgendaFragment extends DaggerFragment {
     }
 }
 
-public class ScheduleAgendaFragment {
+@BindingAdapter("agendaItems")
+public void agendaItems(RecyclerView recyclerView, List<Block> list) {
+    if (recyclerView.getAdapter() == null) {
+        recyclerView.setAdapter(new ScheduleAgendaAdapter());
+    }
+    ((ScheduleAgendaAdapter) recyclerView.getAdapter()).submitList(list != null ? list : Collections.emptyList());
 
-    @BindingAdapter("agendaItems")
-    public static void agendaItems(RecyclerView recyclerView, List<Block> list) {
-        if (recyclerView.getAdapter() == null) {
-            recyclerView.setAdapter(new ScheduleAgendaAdapter());
-        }
-        ((ScheduleAgendaAdapter) recyclerView.getAdapter()).submitList(list != null ? list : Collections.emptyList());
-
-        recyclerView.clearDecorations();
-        if (list != null && !list.isEmpty()) {
-            recyclerView.addItemDecoration(new ScheduleAgendaHeadersDecoration(recyclerView.getContext(), list));
-        }
+    recyclerView.clearDecorations();
+    if (list != null && !list.isEmpty()) {
+        recyclerView.addItemDecoration(new ScheduleAgendaHeadersDecoration(recyclerView.getContext(), list));
     }
 }

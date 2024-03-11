@@ -12,19 +12,19 @@ import dagger.multibindings.IntoMap;
 public abstract class ScheduleModule {
 
     @ContributesAndroidInjector
-    abstract ScheduleFragment contributeScheduleFragment();
+    public abstract ScheduleFragment contributeScheduleFragment();
 
     @ContributesAndroidInjector
-    abstract ScheduleDayFragment contributeScheduleDayFragment();
+    public abstract ScheduleDayFragment contributeScheduleDayFragment();
 
     @ContributesAndroidInjector
-    abstract ScheduleAgendaFragment contributeScheduleAgendaFragment();
+    public abstract ScheduleAgendaFragment contributeScheduleAgendaFragment();
 
     @ContributesAndroidInjector
-    abstract ScheduleFilterFragment contributeScheduleFilterFragment();
+    public abstract ScheduleFilterFragment contributeScheduleFilterFragment();
 
     @Binds
     @IntoMap
     @ViewModelKey(ScheduleViewModel.class)
-    abstract ViewModel bindScheduleFragmentViewModel(ScheduleViewModel viewModel);
+    public abstract ViewModel bindScheduleFragmentViewModel(ScheduleViewModel viewModel);
 }

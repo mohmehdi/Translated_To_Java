@@ -3,9 +3,6 @@ package com.google.samples.apps.iosched.shared.data.session.agenda;
 import com.google.samples.apps.iosched.shared.model.Block;
 import com.google.samples.apps.iosched.shared.util.TimeUtils.ConferenceDay;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class RemoteAgendaDataSource implements AgendaDataSource {
 
     @Override
@@ -91,7 +88,7 @@ public class RemoteAgendaDataSource implements AgendaDataSource {
                 0xff202124,
                 true,
                 ConferenceDay.DAY_1.end.minusHours(3L),
-                ConferenceDay.DAY_1.end)));
+                ConferenceDay.DAY_1.end));
 
         add(new Block(
                 "Breakfast",
@@ -156,7 +153,7 @@ public class RemoteAgendaDataSource implements AgendaDataSource {
                 0xff202124,
                 true,
                 ConferenceDay.DAY_2.end.minusMinutes(90L),
-                ConferenceDay.DAY_2.end)));
+                ConferenceDay.DAY_2.end));
 
         add(new Block(
                 "Breakfast",

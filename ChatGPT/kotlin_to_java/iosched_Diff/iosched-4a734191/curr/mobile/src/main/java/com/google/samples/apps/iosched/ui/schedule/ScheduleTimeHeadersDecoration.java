@@ -54,13 +54,12 @@ public class ScheduleTimeHeadersDecoration extends RecyclerView.ItemDecoration {
         width = res.getDimensionPixelSizeOrThrow(R.styleable.TimeHeader_android_width);
         paddingTop = res.getDimensionPixelSizeOrThrow(R.styleable.TimeHeader_android_paddingTop);
         meridiemTextSize = res.getDimensionPixelSizeOrThrow(R.styleable.TimeHeader_meridiemTextSize);
+
         hourFormatter = DateTimeFormatter.ofPattern("h");
         meridiemFormatter = DateTimeFormatter.ofPattern("a");
 
         timeSlots = new HashMap<>();
-        indexSessionHeaders(sessions).forEach(it -> {
-            timeSlots.put(it.getFirst(), createHeader(it.getSecond()));
-        });
+        indexSessionHeaders(sessions);
     }
 
     @Override
@@ -76,10 +75,10 @@ public class ScheduleTimeHeadersDecoration extends RecyclerView.ItemDecoration {
             if (viewHolder.itemView.getBottom() > 0 && viewTop < parent.getHeight()) {
                 int position = viewHolder.getAdapterPosition();
                 if (timeSlots.containsKey(position)) {
-                    StaticLayout layout = timeSlots.get(position);
+                    StaticLayout header = timeSlots.get(position);
                     int top = Math.max(viewTop + paddingTop, paddingTop);
-                    top = Math.min(top, prevHeaderTop - layout.getHeight());
-                    c.withTranslation(0, top).draw(layout);
+                    top = Math.min(top, prevHeaderTop - header.getHeight());
+                    c.withTranslation(0, top).draw(header);
                     earliestFoundHeaderPos = position;
                     prevHeaderTop = viewTop;
                 }
@@ -92,9 +91,9 @@ public class ScheduleTimeHeadersDecoration extends RecyclerView.ItemDecoration {
 
         for (int headerPos : timeSlots.keySet()) {
             if (headerPos < earliestFoundHeaderPos) {
-                StaticLayout layout = timeSlots.get(headerPos);
-                int top = Math.min(prevHeaderTop - layout.getHeight(), paddingTop);
-                c.withTranslation(0, top).draw(layout);
+                StaticLayout header = timeSlots.get(headerPos);
+                int top = Math.min(prevHeaderTop - header.getHeight(), paddingTop);
+                c.withTranslation(0, top).draw(header);
                 break;
             }
         }
@@ -107,10 +106,5 @@ public class ScheduleTimeHeadersDecoration extends RecyclerView.ItemDecoration {
         text.setSpan(new AbsoluteSizeSpan(meridiemTextSize), text.length() - 2, text.length(), 0);
         text.setSpan(new StyleSpan(Typeface.BOLD), text.length() - 2, text.length(), 0);
         return new StaticLayout(text, paint, width, Layout.Alignment.ALIGN_CENTER, 1f, 0f, false);
-    }
-
-    private List<Pair<Integer, ZonedDateTime>> indexSessionHeaders(List<Session> sessions) {
-        // Implementation not provided
-        return null;
     }
 }

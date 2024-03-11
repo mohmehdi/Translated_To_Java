@@ -41,20 +41,25 @@ public class ScheduleTimeHeadersDecoration extends RecyclerView.ItemDecoration {
     public ScheduleTimeHeadersDecoration(Context context, List<Session> sessions) {
         Resources res = context.getResources();
         paint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        paint.setColor(res.getColorOrThrow(R.color.time_header_text_color));
-        paint.setTextSize(res.getDimensionOrThrow(R.dimen.time_header_hour_text_size));
+        paint.setColor(res.getColor(R.color.time_header_text_color));
+        paint.setTextSize(res.getDimension(R.dimen.time_header_hour_text_size));
         try {
             paint.setTypeface(ResourcesCompat.getFont(context, R.font.time_header_font_family));
-        } catch (Resources.NotFoundException nfe) {
+        } catch (Resources.NotFoundException e) {
         }
-        width = res.getDimensionPixelSizeOrThrow(R.dimen.time_header_width);
-        paddingTop = res.getDimensionPixelSizeOrThrow(R.dimen.time_header_padding_top);
-        meridiemTextSize = res.getDimensionPixelSizeOrThrow(R.dimen.time_header_meridiem_text_size);
+        width = res.getDimensionPixelSize(R.dimen.time_header_width);
+        paddingTop = res.getDimensionPixelSize(R.dimen.time_header_padding_top);
+        meridiemTextSize = res.getDimensionPixelSize(R.dimen.time_header_meridiem_text_size);
         hourFormatter = DateTimeFormatter.ofPattern("h");
         meridiemFormatter = DateTimeFormatter.ofPattern("a");
 
         timeSlots = new HashMap<>();
-        indexSessionHeaders(sessions);
+        List<Pair<Integer, ZonedDateTime>> indexedHeaders = indexSessionHeaders(sessions);
+        for (Pair<Integer, ZonedDateTime> pair : indexedHeaders) {
+            int position = pair.first;
+            ZonedDateTime startTime = pair.second;
+            timeSlots.put(position, createHeader(startTime));
+        }
     }
 
     @Override
@@ -73,9 +78,9 @@ public class ScheduleTimeHeadersDecoration extends RecyclerView.ItemDecoration {
                     StaticLayout headerLayout = timeSlots.get(position);
                     int top = Math.max(viewTop + paddingTop, paddingTop);
                     top = Math.min(top, prevHeaderTop - headerLayout.getHeight());
-                    c.withTranslation(0, top, 0) {
+                    c.withTranslation(0, top, () -> {
                         headerLayout.draw(c);
-                    }
+                    });
                     earliestFoundHeaderPos = position;
                     prevHeaderTop = viewTop;
                 }
@@ -90,29 +95,21 @@ public class ScheduleTimeHeadersDecoration extends RecyclerView.ItemDecoration {
             if (headerPos < earliestFoundHeaderPos) {
                 StaticLayout headerLayout = timeSlots.get(headerPos);
                 int top = Math.min(prevHeaderTop - headerLayout.getHeight(), paddingTop);
-                c.withTranslation(0, top, 0) {
+                c.withTranslation(0, top, () -> {
                     headerLayout.draw(c);
-                }
+                });
                 break;
             }
-        }
-    }
-
-    private void indexSessionHeaders(List<Session> sessions) {
-        for (int i = 0; i < sessions.size(); i++) {
-            Session session = sessions.get(i);
-            ZonedDateTime startTime = session.getStartTime();
-            StaticLayout headerLayout = createHeader(startTime);
-            timeSlots.put(i, headerLayout);
         }
     }
 
     private StaticLayout createHeader(ZonedDateTime startTime) {
         SpannableStringBuilder text = new SpannableStringBuilder(hourFormatter.format(startTime));
         text.append('\n');
-        text.inSpans(new AbsoluteSizeSpan(meridiemTextSize), new StyleSpan(Typeface.BOLD), () -> {
-            text.append(meridiemFormatter.format(startTime).toUpperCase());
-        });
+        text.append(meridiemFormatter.format(startTime).toUpperCase());
+        text.setSpan(new AbsoluteSizeSpan(meridiemTextSize), text.length() - 2, text.length(), 0);
+        text.setSpan(new StyleSpan(Typeface.BOLD), text.length() - 2, text.length(), 0);
         return new StaticLayout(text, paint, width, Layout.Alignment.ALIGN_CENTER, 1f, 0f, false);
     }
+
 }

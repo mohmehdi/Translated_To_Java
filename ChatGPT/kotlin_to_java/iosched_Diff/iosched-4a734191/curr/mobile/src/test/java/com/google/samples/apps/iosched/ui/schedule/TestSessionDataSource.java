@@ -19,24 +19,27 @@ public class TestSessionDataSource implements SessionDataSource {
     private Speaker speaker1 = new Speaker("1", "Troy McClure", "", "", "", "", "");
 
     private Session session1 = new Session(
-        "1", time1, time2,
-        "Jet Packs", "", room1, "",
-        "", "", "", Arrays.asList(androidTag, webTag),
-        new HashSet<>(Arrays.asList(speaker1)), "", new HashSet<>()
+            "1", time1, time2,
+            "Jet Packs", "", room1, "",
+            "", "", "", "", "",
+            new HashSet<>(Arrays.asList(androidTag, webTag)),
+            new HashSet<>(Arrays.asList(speaker1)), "", new HashSet<>()
     );
 
     private Session session2 = new Session(
-        "2", time1, time2,
-        "Flying Cars", "", room1, "Title 1",
-        "", "", "", Arrays.asList(androidTag),
-        new HashSet<>(Arrays.asList(speaker1)), "", new HashSet<>()
+            "2", time1, time2,
+            "Flying Cars", "", room1, "Title 1",
+            "", "", "", "", "",
+            new HashSet<>(Collections.singletonList(androidTag)),
+            new HashSet<>(Collections.singletonList(speaker1)), "", new HashSet<>()
     );
 
     private Session session3 = new Session(
-        "3", time1, time2,
-        "Teleportation", "", room1, "Title 1",
-        "", "", "", Arrays.asList(webTag),
-        new HashSet<>(Arrays.asList(speaker1)), "", new HashSet<>()
+            "3", time1, time2,
+            "Teleportation", "", room1, "Title 1",
+            "", "", "", "", "",
+            new HashSet<>(Collections.singletonList(webTag)),
+            new HashSet<>(Collections.singletonList(speaker1)), "", new HashSet<>()
     );
 
     @Override

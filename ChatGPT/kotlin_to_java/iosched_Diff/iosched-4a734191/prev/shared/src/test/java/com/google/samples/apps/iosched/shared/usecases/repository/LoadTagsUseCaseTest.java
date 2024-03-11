@@ -1,7 +1,6 @@
 package com.google.samples.apps.iosched.shared.usecases.repository;
 
 import com.google.samples.apps.iosched.shared.data.tag.TagRepository;
-import com.google.samples.apps.iosched.shared.data.session.TestSessionDataSource;
 import com.google.samples.apps.iosched.shared.model.Tag;
 import com.google.samples.apps.iosched.shared.result.Result;
 import com.google.samples.apps.iosched.shared.result.Result.Success;
@@ -12,10 +11,9 @@ public class LoadTagsUseCaseTest {
 
     @Test
     public void returnsListOfTags() {
-        LoadTagsUseCase loadTagsUseCase = new LoadTagsUseCase(new TagRepository(new TestSessionDataSource()));
-        Result.Success<List<Tag>> tags =
-                (Result.Success<List<Tag>>) loadTagsUseCase.executeNow(Unit.INSTANCE);
+        LoadTagsUseCase loadTagsUseCase = new LoadTagsUseCase(new TagRepository(TestSessionDataSource));
+        Result.Success<List<Tag>> tags = (Success<List<Tag>>) loadTagsUseCase.executeNow(Unit.INSTANCE);
 
-        Assert.assertEquals(tags.getData(), new TagRepository(new TestSessionDataSource()).getTags());
+        Assert.assertEquals(tags.getData(), new TagRepository(TestSessionDataSource).getTags());
     }
 }

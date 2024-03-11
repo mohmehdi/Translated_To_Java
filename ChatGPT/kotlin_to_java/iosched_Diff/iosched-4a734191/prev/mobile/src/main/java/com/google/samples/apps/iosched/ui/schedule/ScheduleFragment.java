@@ -34,7 +34,6 @@ public class ScheduleFragment extends DaggerFragment {
         FragmentScheduleBinding binding = DataBindingUtil.inflate(
                 inflater, R.layout.fragment_schedule, container, false);
 
-
         binding.setViewModel(viewModel);
         binding.setLifecycleOwner(this);
 
@@ -47,7 +46,6 @@ public class ScheduleFragment extends DaggerFragment {
         viewpager.setAdapter(new ScheduleAdapter(getChildFragmentManager()));
         tabs.setupWithViewPager(viewpager);
     }
-
 
     private class ScheduleAdapter extends FragmentPagerAdapter {
 

@@ -41,41 +41,44 @@ public class ScheduleAgendaHeadersDecoration extends RecyclerView.ItemDecoration
     private DateTimeFormatter dayFormatter;
     private DateTimeFormatter dateFormatter;
     private int dateTextSize;
+
     private Map<Integer, StaticLayout> daySlots;
 
     public ScheduleAgendaHeadersDecoration(Context context, List<Block> blocks) {
+        Resources res = context.getResources();
         textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         dividerPaint = new Paint();
+        width = 0;
+        padding = 0;
+        margin = 0;
         dayFormatter = DateTimeFormatter.ofPattern("eee");
         dateFormatter = DateTimeFormatter.ofPattern("d");
+        dateTextSize = 0;
 
         Resources.Theme theme = context.getTheme();
-        Resources res = context.getResources();
-        int style = R.style.Widget_IOSched_DateHeaders;
-        int[] attrs = new int[]{R.attr.DateHeader_android_textColor, R.attr.DateHeader_dayTextSize,
-                R.attr.DateHeader_android_fontFamily, R.attr.DateHeader_android_divider,
-                R.attr.DateHeader_android_dividerHeight, R.attr.DateHeader_android_width,
-                R.attr.DateHeader_android_padding, R.attr.DateHeader_android_layout_margin,
-                R.attr.DateHeader_dateTextSize};
+        Resources.Theme widgetTheme = theme.newTheme();
+        widgetTheme.applyStyle(R.style.Widget_IOSched_DateHeaders, true);
+        Resources.Theme dateHeaderTheme = res.newTheme();
+        dateHeaderTheme.setTo(widgetTheme);
 
-        TypedArray typedArray = theme.obtainStyledAttributes(style, attrs);
-        textPaint.setColor(typedArray.getColorOrThrow(0));
-        textPaint.setTextSize(typedArray.getDimensionOrThrow(1));
+        Resources.Theme attrs = dateHeaderTheme;
         try {
-            textPaint.setTypeface(ResourcesCompat.getFont(context, typedArray.getResourceIdOrThrow(2)));
+            textPaint.setColor(attrs.getColorOrThrow(android.R.attr.textColor));
+            textPaint.setTextSize(attrs.getDimensionOrThrow(android.R.attr.dayTextSize));
+            textPaint.setTypeface(ResourcesCompat.getFont(context, attrs.getResourceIdOrThrow(android.R.attr.fontFamily)));
         } catch (Resources.NotFoundException nfe) {
         }
-        dividerPaint.setColor(typedArray.getColorOrThrow(3));
-        dividerPaint.setStrokeWidth(typedArray.getDimensionOrThrow(4));
-        width = typedArray.getDimensionPixelSizeOrThrow(5);
-        padding = typedArray.getDimensionPixelSizeOrThrow(6);
-        margin = typedArray.getDimensionPixelSizeOrThrow(7);
-        dateTextSize = typedArray.getDimensionPixelSizeOrThrow(8);
-        typedArray.recycle();
+
+        dividerPaint.setColor(attrs.getColorOrThrow(android.R.attr.divider));
+        dividerPaint.setStrokeWidth(attrs.getDimensionOrThrow(android.R.attr.dividerHeight));
+        width = attrs.getDimensionPixelSizeOrThrow(android.R.attr.width);
+        padding = attrs.getDimensionPixelSizeOrThrow(android.R.attr.padding);
+        margin = attrs.getDimensionPixelSizeOrThrow(android.R.attr.layout_margin);
+        dateTextSize = attrs.getDimensionPixelSizeOrThrow(android.R.attr.dateTextSize);
 
         daySlots = new HashMap<>();
-        indexAgendaHeaders(blocks).forEach(block -> {
-            daySlots.put(block.getFirst(), createHeader(block.getSecond()));
+        indexAgendaHeaders(blocks).forEach(it -> {
+            daySlots.put(it.getFirst(), createHeader(it.getSecond()));
         });
     }
 

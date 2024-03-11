@@ -1,3 +1,5 @@
+package com.google.samples.apps.iosched.ui.schedule;
+
 import android.arch.core.executor.testing.InstantTaskExecutorRule;
 import com.google.samples.apps.iosched.model.TestData;
 import com.google.samples.apps.iosched.shared.data.session.SessionRepository;
@@ -14,9 +16,6 @@ import com.google.samples.apps.iosched.ui.schedule.agenda.TestAgendaDataSource;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
 
 public class ScheduleViewModelTest {
 
@@ -52,12 +51,12 @@ public class ScheduleViewModelTest {
 
         ScheduleViewModel viewModel = new ScheduleViewModel(loadSessionsUseCase, loadAgendaUseCase, loadTagsUseCase);
 
-        Assert.assertTrue(!LiveDataTestUtil.getValue(viewModel.errorMessage).isNullOrEmpty());
+        Assert.assertTrue(!LiveDataTestUtil.getValue(viewModel.errorMessage).isEmpty());
     }
 
     private LoadSessionsByDayUseCase createSessionsUseCase(
             final Map<ConferenceDay, List<Session>> sessions) {
-        return new LoadSessionsByDayUseCase(new SessionRepository(TestSessionDataSource())) {
+        return new LoadSessionsByDayUseCase(new SessionRepository(TestSessionDataSource)) {
             @Override
             public Map<ConferenceDay, List<Session>> execute(SessionFilters filters) {
                 return sessions;
@@ -66,7 +65,7 @@ public class ScheduleViewModelTest {
     }
 
     private LoadSessionsByDayUseCase createSessionsExceptionUseCase() {
-        return new LoadSessionsByDayUseCase(new SessionRepository(TestSessionDataSource())) {
+        return new LoadSessionsByDayUseCase(new SessionRepository(TestSessionDataSource)) {
             @Override
             public Map<ConferenceDay, List<Session>> execute(SessionFilters filters) {
                 throw new Exception("Testing exception");
@@ -75,27 +74,27 @@ public class ScheduleViewModelTest {
     }
 
     private LoadAgendaUseCase createAgendaUseCase(final List<Block> agenda) {
-        return new LoadAgendaUseCase(new AgendaRepository(TestAgendaDataSource())) {
+        return new LoadAgendaUseCase(new AgendaRepository(TestAgendaDataSource)) {
             @Override
-            public List<Block> execute(Void parameters) {
+            public List<Block> execute(Unit parameters) {
                 return agenda;
             }
         };
     }
 
     private LoadTagsByCategoryUseCase createTagsUseCase(final List<Tag> tags) {
-        return new LoadTagsByCategoryUseCase(new TagRepository(TestTagDataSource())) {
+        return new LoadTagsByCategoryUseCase(new TagRepository(TestTagDataSource)) {
             @Override
-            public List<Tag> execute(Void parameters) {
+            public List<Tag> execute(Unit parameters) {
                 return tags;
             }
         };
     }
 
     private LoadTagsByCategoryUseCase createTagsExceptionUseCase() {
-        return new LoadTagsByCategoryUseCase(new TagRepository(TestTagDataSource())) {
+        return new LoadTagsByCategoryUseCase(new TagRepository(TestTagDataSource)) {
             @Override
-            public List<Tag> execute(Void parameters) {
+            public List<Tag> execute(Unit parameters) {
                 throw new Exception("Testing exception");
             }
         };

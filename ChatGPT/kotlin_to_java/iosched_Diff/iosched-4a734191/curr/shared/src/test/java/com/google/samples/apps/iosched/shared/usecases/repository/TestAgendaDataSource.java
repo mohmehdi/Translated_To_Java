@@ -11,19 +11,19 @@ public class TestAgendaDataSource implements AgendaDataSource {
     private ZonedDateTime time2 = ZonedDateTime.of(2017, 3, 12, 13, 0, 0, 0, ZoneId.of("Asia/Tokyo"));
 
     private Block block1 = new Block(
-        "Keynote",
-        "keynote",
-        0xffff00ff,
-        time1,
-        time2
+            "Keynote",
+            "keynote",
+            0xffff00ff,
+            time1,
+            time2
     );
 
     private Block block2 = new Block(
-        "Breakfast",
-        "meal",
-        0xffff00ff,
-        time1.plusDays(1L),
-        time2.plusDays(1L)
+            "Breakfast",
+            "meal",
+            0xffff00ff,
+            time1.plusDays(1L),
+            time2.plusDays(1L)
     );
 
     @Override

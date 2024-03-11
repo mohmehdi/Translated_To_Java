@@ -14,34 +14,41 @@ import com.google.samples.apps.iosched.shared.util.TimeUtils.ConferenceDay.DAY_2
 import com.google.samples.apps.iosched.shared.util.TimeUtils.ConferenceDay.DAY_3;
 import com.google.samples.apps.iosched.shared.util.map;
 import timber.log.Timber;
-
-import java.util.List;
-import java.util.Map;
-
 import javax.inject.Inject;
 
 public class ScheduleViewModel extends ViewModel implements ScheduleEventListener {
 
-    private SessionFilters filters = new SessionFilters();
+    private LoadSessionsByDayUseCase loadSessionsByDayUseCase;
+    private LoadTagsByCategoryUseCase loadTagsByCategoryUseCase;
+
+    private SessionFilters filters;
 
     private LiveData<Boolean> isLoading;
 
     private LiveData<List<Tag>> tags;
 
     private LiveData<String> errorMessage;
-    private MutableLiveData<Boolean> errorMessageShown = new MutableLiveData<>();
+    private MutableLiveData<Boolean> errorMessageShown;
 
-    private MutableLiveData<Result<Map<ConferenceDay, List<Session>>>> loadSessionsResult = new MutableLiveData<>();
-    private MutableLiveData<Result<List<Tag>>> loadTagsResult = new MutableLiveData<>();
+    private MutableLiveData<Result<Map<ConferenceDay, List<Session>>>> loadSessionsResult;
+    private MutableLiveData<Result<List<Tag>>> loadTagsResult;
 
     private LiveData<List<Session>> day1Sessions;
     private LiveData<List<Session>> day2Sessions;
     private LiveData<List<Session>> day3Sessions;
 
     @Inject
-    public ScheduleViewModel(LoadSessionsByDayUseCase loadSessionsByDayUseCase, LoadTagsByCategoryUseCase loadTagsByCategoryUseCase) {
+    public ScheduleViewModel(
+            LoadSessionsByDayUseCase loadSessionsByDayUseCase,
+            LoadTagsByCategoryUseCase loadTagsByCategoryUseCase
+    ) {
         this.loadSessionsByDayUseCase = loadSessionsByDayUseCase;
         this.loadTagsByCategoryUseCase = loadTagsByCategoryUseCase;
+
+        filters = new SessionFilters();
+
+        loadSessionsResult = new MutableLiveData<>();
+        loadTagsResult = new MutableLiveData<>();
 
         loadSessionsByDayUseCase.invoke(filters, loadSessionsResult);
         loadTagsByCategoryUseCase.invoke(loadTagsResult);
@@ -50,21 +57,21 @@ public class ScheduleViewModel extends ViewModel implements ScheduleEventListene
             if (result instanceof Result.Success) {
                 return ((Result.Success<Map<ConferenceDay, List<Session>>>) result).getData().get(DAY_1);
             } else {
-                return emptyList();
+                return new ArrayList<>();
             }
         });
         day2Sessions = loadSessionsResult.map(result -> {
             if (result instanceof Result.Success) {
                 return ((Result.Success<Map<ConferenceDay, List<Session>>>) result).getData().get(DAY_2);
             } else {
-                return emptyList();
+                return new ArrayList<>();
             }
         });
         day3Sessions = loadSessionsResult.map(result -> {
             if (result instanceof Result.Success) {
                 return ((Result.Success<Map<ConferenceDay, List<Session>>>) result).getData().get(DAY_3);
             } else {
-                return emptyList();
+                return new ArrayList<>();
             }
         });
 
@@ -83,7 +90,7 @@ public class ScheduleViewModel extends ViewModel implements ScheduleEventListene
             if (result instanceof Result.Success) {
                 return ((Result.Success<List<Tag>>) result).getData();
             } else {
-                return emptyList();
+                return new ArrayList<>();
             }
         });
     }

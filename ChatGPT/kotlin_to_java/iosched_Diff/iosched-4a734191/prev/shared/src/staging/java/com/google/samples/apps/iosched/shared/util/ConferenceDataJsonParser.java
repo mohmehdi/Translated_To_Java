@@ -25,9 +25,10 @@ public class ConferenceDataJsonParser {
 
         com.google.gson.stream.JsonReader jsonReader = new com.google.gson.stream.JsonReader(new InputStreamReader(inputStream));
 
-        GsonBuilder gsonBuilder = new GsonBuilder();
-        gsonBuilder.registerTypeAdapter(SessionTemp.class, new SessionDeserializer());
-        gsonBuilder.registerTypeAdapter(Tag.class, new TagDeserializer());
+        GsonBuilder gsonBuilder = new GsonBuilder()
+                .registerTypeAdapter(SessionTemp.class, new SessionDeserializer())
+                .registerTypeAdapter(Tag.class, new TagDeserializer());
+
         com.google.gson.Gson gson = gsonBuilder.create();
 
         TestDataTemp tempData = gson.fromJson(jsonReader, TestDataTemp.class);
@@ -37,43 +38,43 @@ public class ConferenceDataJsonParser {
     private static TestData normalize(TestDataTemp data) {
         List<Session> sessions = new ArrayList<>();
 
-        for (SessionTemp session : data.getSessions()) {
+        for (SessionTemp session : data.sessions) {
             Session newSession = new Session(
-                    session.getId(),
-                    session.getStartTime(),
-                    session.getEndTime(),
-                    session.getTitle(),
-                    session.getAbstract(),
-                    session.getSessionUrl(),
-                    session.getLiveStreamUrl(),
-                    session.getYouTubeUrl(),
-                    data.getTags().stream().filter(tag -> session.getTags().contains(tag.getId())).toList(),
-                    data.getSpeakers().stream().filter(speaker -> session.getSpeakers().contains(speaker.getId())).collect(Collectors.toSet()),
-                    session.getPhotoUrl(),
-                    session.getRelatedSessions(),
-                    data.getRooms().stream().filter(room -> room.getId().equals(session.getRoom())).findFirst().orElse(null)
+                    session.id,
+                    session.startTime,
+                    session.endTime,
+                    session.title,
+                    session.abstract,
+                    session.sessionUrl,
+                    session.liveStreamUrl,
+                    session.youTubeUrl,
+                    data.tags.stream().filter(tag -> session.tags.contains(tag.id)).toList(),
+                    data.speakers.stream().filter(speaker -> session.speakers.contains(speaker.id)).collect(Collectors.toSet()),
+                    session.photoUrl,
+                    session.relatedSessions,
+                    data.rooms.stream().filter(room -> room.id.equals(session.room)).findFirst().orElse(null)
             );
             sessions.add(newSession);
         }
 
         return new TestData(sessions,
-                data.getTags(),
-                data.getSpeakers(),
-                data.getBlocks(),
-                data.getRooms());
+                data.tags,
+                data.speakers,
+                data.blocks,
+                data.rooms);
     }
 
     public static List<Session> getSessions() {
         if (testData == null) {
             testData = parseConferenceData();
         }
-        return testData.getSessions();
+        return testData.sessions;
     }
 
     public static List<Tag> getTags() {
         if (testData == null) {
             testData = parseConferenceData();
         }
-        return testData.getTags();
+        return testData.tags;
     }
 }

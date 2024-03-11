@@ -10,8 +10,6 @@ import com.google.samples.apps.iosched.shared.util.TimeUtils.ConferenceDay.DAY_1
 import com.google.samples.apps.iosched.shared.util.TimeUtils.ConferenceDay.DAY_2;
 import com.google.samples.apps.iosched.shared.util.TimeUtils.ConferenceDay.DAY_3;
 
-import java.util.*;
-
 public class TestData {
 
     public static final Tag androidTag = new Tag("1", "TRACK", 0, "Android", 0xFFAED581);
@@ -30,30 +28,30 @@ public class TestData {
     public static final Session session0 = new Session("0", "Session 0", "",
             DAY_1.start, DAY_1.end,
             room, "", "", "", "",
-            Arrays.asList(androidTag, webTag), Collections.singleton(speaker),
-            Collections.emptySet());
+            new Tag[]{androidTag, webTag}, new Speaker[]{speaker},
+            new Session[]{});
 
     public static final Session session1 = new Session("1", "Session 1", "",
             DAY_1.start, DAY_1.end,
             room, "", "", "", "",
-            Arrays.asList(androidTag, webTag), Collections.singleton(speaker),
-            Collections.emptySet());
+            new Tag[]{androidTag, webTag}, new Speaker[]{speaker},
+            new Session[]{});
 
     public static final Session session2 = new Session("2", "Session 2", "",
             DAY_2.start, DAY_2.end,
             room, "", "", "", "",
-            Collections.singletonList(androidTag), Collections.singleton(speaker), Collections.emptySet());
+            new Tag[]{androidTag}, new Speaker[]{speaker}, new Session[]{});
 
     public static final Session session3 = new Session("3", "Session 3", "",
             DAY_3.start, DAY_3.end,
             room, "", "", "", "",
-            Collections.singletonList(webTag), Collections.singleton(speaker), Collections.emptySet());
+            new Tag[]{webTag}, new Speaker[]{speaker}, new Session[]{});
 
     public static final Map<ConferenceDay, List<Session>> sessionsMap = new HashMap<>();
     static {
         sessionsMap.put(ConferenceDay.DAY_1, Arrays.asList(session0, session1));
-        sessionsMap.put(ConferenceDay.DAY_2, Collections.singletonList(session2));
-        sessionsMap.put(ConferenceDay.DAY_3, Collections.singletonList(session3));
+        sessionsMap.put(ConferenceDay.DAY_2, Arrays.asList(session2));
+        sessionsMap.put(ConferenceDay.DAY_3, Arrays.asList(session3));
     }
 
     public static final List<Tag> tagsList = Arrays.asList(androidTag, webTag, sessionsTag, codelabsTag, beginnerTag,

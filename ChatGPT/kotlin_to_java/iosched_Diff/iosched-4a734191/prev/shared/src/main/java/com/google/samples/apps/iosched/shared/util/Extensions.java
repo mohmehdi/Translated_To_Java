@@ -21,7 +21,7 @@ import java.util.EnumSet;
 public class Extensions {
 
     public static <T> Lazy<T> lazyFast(Operation<T> operation) {
-        return new Lazy<>(operation);
+        return lazy(LazyThreadSafetyMode.NONE, operation);
     }
 
     public static boolean consume(Operation<Void> f) {
@@ -38,7 +38,7 @@ public class Extensions {
     }
 
     public static <VM extends ViewModel> Lazy<VM> viewModelProvider(FragmentActivity fragmentActivity, ViewModelProvider.Factory provider) {
-        return new Lazy<>(() -> ViewModelProviders.of(fragmentActivity, provider).get(VM.class));
+        return lazyFast(() -> ViewModelProviders.of(fragmentActivity, provider).get(VM.class));
     }
 
     public static <VM extends ViewModel> VM viewModelProvider(Fragment fragment, ViewModelProvider.Factory provider) {
@@ -70,42 +70,10 @@ public class Extensions {
     }
 
     public static <X, T> LiveData<X> map(LiveData<T> liveData, Function<T, X> body) {
-        return Transformations.map(liveData, body::apply);
+        return Transformations.map(liveData, body::invoke);
     }
 
     public static <X, T> LiveData<X> switchMap(LiveData<T> liveData, Function<T, LiveData<X>> body) {
-        return Transformations.switchMap(liveData, body::apply);
-    }
-
-    public interface Operation<T> {
-        T invoke();
-    }
-
-    public interface Func<T, R> {
-        R apply(T t);
-    }
-
-    public static class Lazy<T> {
-        private final Operation<T> operation;
-        private volatile T value;
-
-        public Lazy(Operation<T> operation) {
-            this.operation = operation;
-        }
-
-        public T getValue() {
-            if (value == null) {
-                synchronized (this) {
-                    if (value == null) {
-                        value = operation.invoke();
-                    }
-                }
-            }
-            return value;
-        }
-    }
-
-    public interface Function<T, R> {
-        R apply(T t);
+        return Transformations.switchMap(liveData, body::invoke);
     }
 }

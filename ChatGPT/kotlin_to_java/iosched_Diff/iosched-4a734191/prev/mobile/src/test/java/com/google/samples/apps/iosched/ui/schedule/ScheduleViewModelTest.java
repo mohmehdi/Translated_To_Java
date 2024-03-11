@@ -1,3 +1,5 @@
+package com.google.samples.apps.iosched.ui.schedule;
+
 import android.arch.core.executor.testing.InstantTaskExecutorRule;
 import com.google.samples.apps.iosched.model.TestData;
 import com.google.samples.apps.iosched.shared.data.session.SessionRepository;
@@ -10,9 +12,6 @@ import com.google.samples.apps.iosched.test.util.LiveDataTestUtil;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
 
 public class ScheduleViewModelTest {
 
@@ -34,8 +33,8 @@ public class ScheduleViewModelTest {
             Assert.assertEquals(TestData.sessionsMap.get(day),
                     LiveDataTestUtil.getValue(viewModel.getSessionsForDay(day)));
         }
-        Assert.assertFalse(LiveDataTestUtil.getValue(viewModel.isLoading));
-        Assert.assertEquals(TestData.tagsList, LiveDataTestUtil.getValue(viewModel.tags));
+        Assert.assertFalse(LiveDataTestUtil.getValue(viewModel.isLoading()));
+        Assert.assertEquals(TestData.tagsList, LiveDataTestUtil.getValue(viewModel.getTags()));
     }
 
     @Test
@@ -45,12 +44,12 @@ public class ScheduleViewModelTest {
 
         ScheduleViewModel viewModel = new ScheduleViewModel(loadSessionsUseCase, loadTagsUseCase);
 
-        Assert.assertTrue(!LiveDataTestUtil.getValue(viewModel.errorMessage).isNullOrEmpty());
+        Assert.assertTrue(!LiveDataTestUtil.getValue(viewModel.getErrorMessage()).isNullOrEmpty());
     }
 
     private LoadSessionsByDayUseCase createSessionsUseCase(
-            final Map<ConferenceDay, List<Session>> sessions) {
-        return new LoadSessionsByDayUseCase(new SessionRepository(TestSessionDataSource())) {
+            Map<ConferenceDay, List<Session>> sessions) {
+        return new LoadSessionsByDayUseCase(new SessionRepository(TestSessionDataSource)) {
             @Override
             public Map<ConferenceDay, List<Session>> execute(SessionFilters filters) {
                 return sessions;
@@ -59,7 +58,7 @@ public class ScheduleViewModelTest {
     }
 
     private LoadSessionsByDayUseCase createSessionsExceptionUseCase() {
-        return new LoadSessionsByDayUseCase(new SessionRepository(TestSessionDataSource())) {
+        return new LoadSessionsByDayUseCase(new SessionRepository(TestSessionDataSource)) {
             @Override
             public Map<ConferenceDay, List<Session>> execute(SessionFilters filters) {
                 throw new Exception("Testing exception");
@@ -67,8 +66,8 @@ public class ScheduleViewModelTest {
         };
     }
 
-    private LoadTagsByCategoryUseCase createTagsUseCase(final List<Tag> tags) {
-        return new LoadTagsByCategoryUseCase(new TagRepository(TestSessionDataSource())) {
+    private LoadTagsByCategoryUseCase createTagsUseCase(List<Tag> tags) {
+        return new LoadTagsByCategoryUseCase(new TagRepository(TestSessionDataSource)) {
             @Override
             public List<Tag> execute(Unit parameters) {
                 return tags;
@@ -77,7 +76,7 @@ public class ScheduleViewModelTest {
     }
 
     private LoadTagsByCategoryUseCase createTagsExceptionUseCase() {
-        return new LoadTagsByCategoryUseCase(new TagRepository(TestSessionDataSource())) {
+        return new LoadTagsByCategoryUseCase(new TagRepository(TestSessionDataSource)) {
             @Override
             public List<Tag> execute(Unit parameters) {
                 throw new Exception("Testing exception");

@@ -16,8 +16,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import java.util.Enum;
-
 public class Extensions {
 
     public static <T> Lazy<T> lazyFast(Operation<T> operation) {
@@ -57,16 +55,16 @@ public class Extensions {
         parcel.writeString(value.name());
     }
 
-    public static <T extends Enum<T>> T readEnum(Parcel parcel) {
-        return Enum.valueOf(parcel.readString());
+    public static <T extends Enum<T>> T readEnum(Parcel parcel, Class<T> enumClass) {
+        return Enum.valueOf(enumClass, parcel.readString());
     }
 
     public static <T extends Enum<T>> void putEnum(Bundle bundle, String key, T value) {
         bundle.putString(key, value.name());
     }
 
-    public static <T extends Enum<T>> T getEnum(Bundle bundle, String key) {
-        return Enum.valueOf(bundle.getString(key));
+    public static <T extends Enum<T>> T getEnum(Bundle bundle, String key, Class<T> enumClass) {
+        return Enum.valueOf(enumClass, bundle.getString(key));
     }
 
     public static <X, T> LiveData<X> map(LiveData<T> liveData, Function<T, X> body) {

@@ -2,7 +2,9 @@ package com.google.samples.apps.iosched.ui.schedule;
 
 import android.content.Context;
 import android.widget.TextView;
+
 import com.google.samples.apps.iosched.R;
+
 import org.threeten.bp.Duration;
 import org.threeten.bp.ZonedDateTime;
 

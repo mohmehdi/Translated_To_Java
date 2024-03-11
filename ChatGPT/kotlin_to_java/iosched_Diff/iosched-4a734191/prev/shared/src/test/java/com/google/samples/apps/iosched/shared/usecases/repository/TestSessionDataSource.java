@@ -25,27 +25,27 @@ public class TestSessionDataSource implements SessionDataSource, TagDataSource {
 
     private Session session1 = new Session("1", time1, time2,
             "Jet Packs", "", room1, "",
-            "", "", "", Arrays.asList(androidTag, webTag),
-            new HashSet<>(Arrays.asList(speaker1)), "", new HashSet<>());
+            "", "", "", new ArrayList<>(Arrays.asList(androidTag, webTag)),
+            new HashSet<>(Collections.singletonList(speaker1)), "", new HashSet<>());
 
     private Session session2 = new Session("2", time1, time2,
             "Flying Cars", "", room1, "Title 1",
-            "", "", "", Arrays.asList(androidTag),
-            new HashSet<>(Arrays.asList(speaker1)), "", new HashSet<>());
+            "", "", "", new ArrayList<>(Collections.singletonList(androidTag)),
+            new HashSet<>(Collections.singletonList(speaker1)), "", new HashSet<>());
 
     private Session session3 = new Session("3", time1, time2,
             "Teleportation", "", room1, "Title 1",
-            "", "", "", Arrays.asList(webTag),
-            new HashSet<>(Arrays.asList(speaker1)), "", new HashSet<>());
+            "", "", "", new ArrayList<>(Collections.singletonList(webTag)),
+            new HashSet<>(Collections.singletonList(speaker1)), "", new HashSet<>());
 
     @Override
     public List<Session> getSessions() {
-        return Arrays.asList(session1, session2, session3);
+        return new ArrayList<>(Arrays.asList(session1, session2, session3));
     }
 
     @Override
     public List<Tag> getTags() {
-        return Arrays.asList(androidTag, webTag, sessionsTag, codelabsTag, beginnerTag, intermediateTag);
+        return new ArrayList<>(Arrays.asList(androidTag, webTag, sessionsTag, codelabsTag, beginnerTag, intermediateTag));
     }
 
     @Override

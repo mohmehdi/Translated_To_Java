@@ -15,7 +15,7 @@ import com.google.samples.apps.iosched.shared.model.Block;
 
 public class ScheduleAgendaAdapter extends ListAdapter<Block, AgendaViewHolder> {
 
-    public ScheduleAgendaAdapter() {
+    protected ScheduleAgendaAdapter() {
         super(BlockDiff);
     }
 
@@ -44,12 +44,12 @@ public class ScheduleAgendaAdapter extends ListAdapter<Block, AgendaViewHolder> 
 class AgendaViewHolder extends RecyclerView.ViewHolder {
     private final ViewDataBinding binding;
 
-    public AgendaViewHolder(ViewDataBinding binding) {
+    AgendaViewHolder(ViewDataBinding binding) {
         super(binding.getRoot());
         this.binding = binding;
     }
 
-    public void bind(Block block) {
+    void bind(Block block) {
         binding.setVariable(BR.agenda, block);
         binding.executePendingBindings();
     }

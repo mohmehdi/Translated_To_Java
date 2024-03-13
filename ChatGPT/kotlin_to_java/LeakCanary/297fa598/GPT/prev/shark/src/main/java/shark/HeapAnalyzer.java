@@ -236,12 +236,17 @@ public class HeapAnalyzer {
                 if (!pathsToLeakingInstances.stream().map(ReferencePathNode::objectId).collect(Collectors.toSet()).contains(instanceId)) {
                     int currentSize = sizeByDominator.getOrDefault(dominatorId, 0);
                     int nativeSize = nativeSizes.getOrDefault(instanceId, 0);
-                    int shallowSize = switch (graph.findObjectById(instanceId)) {
-                        case HeapInstance instance -> instance.byteSize;
-                        case HeapObjectArray objectArray -> objectArray.readByteSize();
-                        case HeapPrimitiveArray primitiveArray -> primitiveArray.readByteSize();
-                        default -> throw new IllegalStateException("Unexpected class record");
-                    };
+                    int shallowSize;
+                    HeapObject obj = graph.findObjectById(instanceId);
+                    if (obj instanceof HeapInstance) {
+                        shallowSize = ((HeapInstance) obj).byteSize;
+                    } else if (obj instanceof HeapObjectArray) {
+                        shallowSize = ((HeapObjectArray) obj).readByteSize();
+                    } else if (obj instanceof HeapPrimitiveArray) {
+                        shallowSize = ((HeapPrimitiveArray) obj).readByteSize();
+                    } else {
+                        throw new IllegalStateException("Unexpected class record");
+                    }
                     sizeByDominator.put(dominatorId, currentSize + nativeSize + shallowSize);
                 }
             }

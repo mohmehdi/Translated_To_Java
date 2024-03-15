@@ -1,346 +1,245 @@
-package shark.internal;
+package shark;
 
-import shark.GcRoot;
-import shark.Hprof;
-import shark.HprofRecord;
-import shark.HprofRecord.HeapDumpRecord.GcRootRecord;
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassSkipContentRecord;
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceSkipContentRecord;
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArraySkipContentRecord;
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArraySkipContentRecord;
-import shark.HprofRecord.LoadClassRecord;
-import shark.HprofRecord.StringRecord;
-import shark.OnHprofRecordListener;
-import shark.PrimitiveType;
-import shark.ProguardMapping;
-import shark.ValueHolder;
+import shark.GcRoot.JavaFrame;
+import shark.GcRoot.JniGlobal;
+import shark.GcRoot.JniLocal;
+import shark.GcRoot.JniMonitor;
+import shark.GcRoot.MonitorUsed;
+import shark.GcRoot.NativeStack;
+import shark.GcRoot.StickyClass;
+import shark.GcRoot.ThreadBlock;
+import shark.GcRoot.ThreadObject;
+import shark.HeapObject.HeapClass;
+import shark.HeapObject.HeapInstance;
+import shark.HeapObject.HeapObjectArray;
+import shark.HeapObject.HeapPrimitiveArray;
+import shark.HprofHeapGraph.HprofHeapGraphIndex;
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord;
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord;
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord;
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord;
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord;
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord;
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord;
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump;
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump;
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump;
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump;
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump;
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump;
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump;
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump;
+import shark.internal.FieldValuesReader;
+import shark.internal.HprofInMemoryIndex;
+import shark.internal.IndexedObject;
 import shark.internal.IndexedObject.IndexedClass;
 import shark.internal.IndexedObject.IndexedInstance;
 import shark.internal.IndexedObject.IndexedObjectArray;
 import shark.internal.IndexedObject.IndexedPrimitiveArray;
-import shark.internal.hppc.LongLongScatterMap;
-import shark.internal.hppc.LongObjectScatterMap;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.function.BiFunction;
+import shark.internal.LruCache;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
 
-public class HprofInMemoryIndex {
+public class HprofHeapGraph implements HeapGraph {
+  private final Hprof hprof;
+  private final HprofHeapGraphIndex index;
 
-  private final int positionSize;
-  private final LongObjectScatterMap hprofStringCache;
-  private final LongLongScatterMap classNames;
-  private final SortedMap < Long, byte[] > classIndex;
-  private final SortedMap < Long, byte[] > instanceIndex;
-  private final SortedMap < Long, byte[] > objectArrayIndex;
-  private final SortedMap < Long, byte[] > primitiveArrayIndex;
-  private final List < GcRoot > gcRoots;
-  private final ProguardMapping proguardMapping;
-  private final Set < PrimitiveType > primitiveWrapperTypes;
+  private final LruCache < Long, ObjectRecord > objectCache = new LruCache < > (3000);
+  private HeapClass javaLangObjectClass;
 
-  private HprofInMemoryIndex(int positionSize, LongObjectScatterMap hprofStringCache, LongLongScatterMap classNames,
-    SortedMap < Long, byte[] > classIndex, SortedMap < Long, byte[] > instanceIndex,
-    SortedMap < Long, byte[] > objectArrayIndex, SortedMap < Long, byte[] > primitiveArrayIndex,
-    List < GcRoot > gcRoots, ProguardMapping proguardMapping, Set < PrimitiveType > primitiveWrapperTypes) {
-    this.positionSize = positionSize;
-    this.hprofStringCache = hprofStringCache;
-    this.classNames = classNames;
-    this.classIndex = classIndex;
-    this.instanceIndex = instanceIndex;
-    this.objectArrayIndex = objectArrayIndex;
-    this.primitiveArrayIndex = primitiveArrayIndex;
-    this.gcRoots = gcRoots;
-    this.proguardMapping = proguardMapping;
-    this.primitiveWrapperTypes = primitiveWrapperTypes;
+  public HprofHeapGraph(Hprof hprof, HprofHeapGraphIndex index) {
+    this.hprof = hprof;
+    this.index = index;
   }
 
-  public String fieldName(long classId, long id) {
-    String fieldNameString = getHprofStringById(id);
-    if (proguardMapping != null) {
-      long classNameStringId = classNames.get(classId);
-      String classNameString = getHprofStringById(classNameStringId);
-      fieldNameString = proguardMapping.deobfuscateFieldName(classNameString, fieldNameString);
-    }
-    return fieldNameString;
+  @Override
+  public int identifierByteSize() {
+      return hprof.getReader().identifierByteSize();
   }
 
-  public String className(long classId) {
-    long classNameStringId = classNames.get(classId);
-    String classNameString = getHprofStringById(classNameStringId);
-    return proguardMapping != null ? proguardMapping.deobfuscateClassName(classNameString) : classNameString;
+  @Override
+  public GraphContext context() {
+      return new GraphContext();
   }
 
-  public Long classId(String className) {
-    long hprofStringId = hprofStringCache.entrySet().stream()
-      .filter(entry -> entry.getValue().equals(className))
-      .findFirst()
-      .map(Map.Entry::getKey)
-      .orElse(null);
-    if (hprofStringId != null) {
-      Long classNameStringId = classNames.entrySet().stream()
-        .filter(entry -> entry.getValue() == hprofStringId)
-        .findFirst()
-        .map(Map.Entry::getKey)
-        .orElse(null);
-      return classNameStringId;
-    }
-    return null;
+  @Override
+  public List<GcRoot> gcRoots() {
+      return index.gcRoots();
   }
 
-  public Sequence < Pair < Long, IndexedClass >> indexedClassSequence() {
-    return classIndex.entrySet().stream()
-      .map(entry -> Pair.create(entry.getKey(),
-        new IndexedClass(
-          entry.getValue()[0],
-          entry.getValue()[entry.getValue().length - 8],
-          ByteBuffer.wrap(entry.getValue()).getInt()
-        )
-      ));
+  @Override
+  public Sequence<HeapObject> objects() {
+      return index.indexedObjectSequence().map(it -> wrapIndexedObject(it.second, it.first));
   }
 
-  public static Stream < Pair < Long, IndexedInstance >> indexedInstanceSequence() {
-    return StreamSupport.stream(instanceIndex.spliterator(), false)
-      .map(entry -> {
-        long id = entry.getKey();
-        byte[] array = entry.getValue();
-        IndexedInstance instance = new IndexedInstance(
-          getTruncatedLong(array, positionSize),
-          getId(array)
-        );
-        return Pair.create(id, instance);
+
+  @Override
+  public Sequence<HeapClass> classes() {
+    return index.indexedClassSequence().stream()
+        .map(it -> {
+          int objectId = it[0];
+          IndexedObject indexedObject = it[1];
+          return new HeapClass(this, indexedObject, objectId);
+        })
+        .collect(Collector.toSequence());
+  }
+
+  @Override
+  public Sequence<Instance> instances() {
+      return index.indexedInstanceSequence().map(it -> {
+          long objectId = it.first;
+          IndexedInstance indexedObject = it.second;
+          boolean isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.classId());
+          return new HeapInstance(this, indexedObject, objectId, isPrimitiveWrapper);
       });
   }
 
-  static Stream < Entry < Long, IndexedObjectArray >> indexedObjectArraySequence() {
-    return objectArrayIndex.entrySet().stream()
-      .map(entry -> {
-        long id = entry.getKey();
-        byte[] array = entry.getValue();
-        IndexedObjectArray objectArray = new IndexedObjectArray(
-          readTruncatedLong(array, positionSize),
-          readId(array)
-        );
-        return Entry.of(id, objectArray);
-      });
-  }
-  public static Stream < Map.Entry < Long, IndexedPrimitiveArray >> indexedPrimitiveArraySequence() {
-    return primitiveArrayIndex.entrySet().stream()
-      .map(entry -> {
-        long id = entry.getKey();
-        byte[] array = entry.getValue();
-
-        IndexedPrimitiveArray indexedPrimitiveArray = new IndexedPrimitiveArray(
-          position: array[0],
-          primitiveType: PrimitiveType.values()[array[1]]
-        );
-
-        return Map.entry(id, indexedPrimitiveArray);
+  @Override
+  public Sequence<ObjectArray> objectArrays() {
+      return index.indexedObjectArraySequence().map(it -> {
+          long objectId = it.first;
+          IndexedInstance indexedObject = it.second;
+          boolean isPrimitiveWrapper = index.primitiveWrapperTypes.contains(indexedObject.arrayClassId());
+          return new HeapObjectArray(this, indexedObject, objectId, isPrimitiveWrapper);
       });
   }
 
-  public static Stream < Pair < Long, IndexedObject >> indexedObjectSequence() {
-    return Stream.concat(indexedClassSequence(),
-      Stream.concat(indexedInstanceSequence(),
-        Stream.concat(indexedObjectArraySequence(), indexedPrimitiveArraySequence())));
+  @Override
+  public Sequence<PrimitiveArray> primitiveArrays() {
+      return index.indexedPrimitiveArraySequence().map(it -> {
+          long objectId = it.first;
+          IndexedInstance indexedObject = it.second;
+          return new HeapPrimitiveArray(this, indexedObject, objectId);
+      });
   }
 
-  public static List < GcRoot > gcRoots() {
-    return gcRoots;
+  private LruCache<Long, ObjectRecord> objectCache = new LruCache<>(3000);
+
+  private HeapClass javaLangObjectClass = findClassByName("java.lang.Object");
+
+
+  private HeapObject findObjectByIdOrNull(Long objectId) {
+    if (objectId == javaLangObjectClass.getObjectId()) {
+      return javaLangObjectClass;
+    }
+
+    IndexedObject indexedObject = index.getIndexedObjectOrNull(objectId);
+    if (indexedObject == null) {
+      return null;
+    }
+    return wrapIndexedObject(indexedObject, objectId);
   }
 
-  @SuppressWarnings("ConstantConditions")
-  public IndexedObject indexedObjectOrNull(long objectId) {
-    ByteSubArray array = classIndex.get(objectId);
-    if (array != null) {
-      return new IndexedClass(
-        array.readTruncatedLong(positionSize),
-        array.readId(),
-        array.readInt()
-      );
+  @Override
+  public HeapObject findObjectById(Long objectId) {
+    HeapObject heapObject = findObjectByIdOrNull(objectId);
+    if (heapObject == null) {
+      throw new IllegalArgumentException("Object id " + objectId + " not found in heap dump.");
     }
-    array = instanceIndex.get(objectId);
-    if (array != null) {
-      return new IndexedInstance(
-        array.readTruncatedLong(positionSize),
-        array.readId()
-      );
-    }
-    array = objectArrayIndex.get(objectId);
-    if (array != null) {
-      return new IndexedObjectArray(
-        array.readTruncatedLong(positionSize),
-        array.readId()
-      );
-    }
-    array = primitiveArrayIndex.get(objectId);
-    if (array != null) {
-      return new IndexedPrimitiveArray(
-        array.readTruncatedLong(positionSize),
-        PrimitiveType.values()[array.readByte()]
-      );
-    }
-    return null;
+    return heapObject;
   }
 
-  @SuppressWarnings("MethodReturnCount")
-  public boolean objectIdIsIndexed(long objectId) {
-    return Optional.ofNullable(classIndex.get(objectId)).isPresent() ||
-      Optional.ofNullable(instanceIndex.get(objectId)).isPresent() ||
-      Optional.ofNullable(objectArrayIndex.get(objectId)).isPresent() ||
-      Optional.ofNullable(primitiveArrayIndex.get(objectId)).isPresent();
+  @Override
+  public HeapClass findClassByName(String className) {
+    Long classId = index.getClassId(className);
+    if (classId == null) {
+      return null;
+    }
+    return (HeapClass) findObjectById(classId);
   }
 
-  private String hprofStringById(long id) {
-    String hprofString = hprofStringCache.get(id);
-    if (hprofString == null) {
-      throw new IllegalArgumentException("Hprof string " + id + " not in cache");
-    }
-    return hprofString;
+  @Override
+  public boolean objectExists(Long objectId) {
+    return index.objectIdIsIndexed(objectId);
   }
 
-  public static class Builder implements OnHprofRecordListener {
-
-    private final int identifierSize;
-    private final int positionSize;
-
-    private final LongObjectScatterMap hprofStringCache;
-    private final LongLongScatterMap classNames;
-    private final SortedMap < Long, byte[] > classIndex;
-    private final SortedMap < Long, byte[] > instanceIndex;
-    private final SortedMap < Long, byte[] > objectArrayIndex;
-    private final SortedMap < Long, byte[] > primitiveArrayIndex;
-
-    private final Set < PrimitiveType > primitiveWrapperTypes;
-    private final Set < Long > primitiveWrapperClassNames;
-    private final List < GcRoot > gcRoots;
-
-    public Builder(boolean longIdentifiers, long fileLength, int classCount, int instanceCount,
-      int objectArrayCount, int primitiveArrayCount, Set < Class < ? >> indexedGcRootsTypes) {
-      this.identifierSize = longIdentifiers ? 8 : 4;
-      this.positionSize = byteSizeForUnsigned(fileLength);
-
-      this.hprofStringCache = new LongObjectScatterMap();
-      this.classNames = new LongLongScatterMap(expectedElements = classCount);
-      this.classIndex = new TreeMap < > ();
-      this.instanceIndex = new TreeMap < > ();
-      this.objectArrayIndex = new TreeMap < > ();
-      this.primitiveArrayIndex = new TreeMap < > ();
-
-      this.primitiveWrapperTypes = new HashSet < > ();
-      this.primitiveWrapperClassNames = new HashSet < > ();
-      this.gcRoots = new ArrayList < > ();
-    }
-
-    @Override
-    public void onHprofRecord(long position, HprofRecord record) {
-      if (record instanceof StringRecord) {
-        StringRecord stringRecord = (StringRecord) record;
-        if (PRIMITIVE_WRAPPER_TYPES.contains(stringRecord.string)) {
-          primitiveWrapperClassNames.add(stringRecord.id);
-        }
-
-        hprofStringCache.put(stringRecord.id, stringRecord.string.replace('/', '.'));
-      } else if (record instanceof LoadClassRecord) {
-        LoadClassRecord loadClassRecord = (LoadClassRecord) record;
-        classNames.put(loadClassRecord.id, loadClassRecord.classNameStringId);
-        if (primitiveWrapperClassNames.contains(loadClassRecord.classNameStringId)) {
-          primitiveWrapperTypes.add(PrimitiveType.getById(loadClassRecord.id));
-        }
-      } else if (record instanceof GcRootRecord) {
-        GcRootRecord gcRootRecord = (GcRootRecord) record;
-        GcRoot gcRoot = gcRootRecord.gcRoot;
-        if (gcRoot.id != ValueHolder.NULL_REFERENCE && indexedGcRootsTypes.contains(gcRoot.getClass())) {
-          gcRoots.add(gcRoot);
-        }
-      } else if (record instanceof ClassSkipContentRecord) {
-        ClassSkipContentRecord classSkipContentRecord = (ClassSkipContentRecord) record;
-        byte[] entry = new byte[positionSize + identifierSize + 4];
-        writeTruncatedLong(entry, 0, position, positionSize);
-        writeId(entry, positionSize, classSkipContentRecord.superclassId);
-        writeInt(entry, positionSize + identifierSize, classSkipContentRecord.instanceSize);
-        classIndex.put(classSkipContentRecord.id, entry);
-      }
-      // Implement other cases similarly
-    }
-
-    public HprofInMemoryIndex buildIndex(ProguardMapping proguardMapping) {
-      SortedMap < Long, byte[] > sortedInstanceIndex = moveToSortedMap(instanceIndex,
-        (id, value) -> value);
-      SortedMap < Long, byte[] > sortedObjectArrayIndex = moveToSortedMap(objectArrayIndex,
-        (id, value) -> value);
-      SortedMap < Long, byte[] > sortedPrimitiveArrayIndex = moveToSortedMap(primitiveArrayIndex,
-        (id, value) -> value);
-      SortedMap < Long, byte[] > sortedClassIndex = moveToSortedMap(classIndex,
-        (id, value) -> value);
-
-      return new HprofInMemoryIndex(positionSize, hprofStringCache, classNames, sortedClassIndex,
-        sortedInstanceIndex, sortedObjectArrayIndex, sortedPrimitiveArrayIndex, gcRoots,
-        proguardMapping, primitiveWrapperTypes);
-    }
-
-    // Implement helper methods like moveToSortedMap, writeTruncatedLong, writeId, and writeInt
-
+  private String fieldName(Long classId, FieldRecord fieldRecord) {
+    return index.fieldName(classId, fieldRecord.getNameStringId());
   }
 
-  private static int byteSizeForUnsigned(long maxValue) {
-    int byteCount = 0;
-    long value = maxValue;
-    while (value != 0) {
-      value = value >> 8;
-      byteCount++;
-    }
-    return byteCount;
+  private String staticFieldName(Long classId, StaticFieldRecord fieldRecord) {
+    return index.fieldName(classId, fieldRecord.getNameStringId());
   }
 
-  public static HprofInMemoryIndex createReadingHprof(Hprof hprof, ProguardMapping proguardMapping,
-    Set < Class < ? >> indexedGcRootTypes) {
-    Set < Class < ? >> recordTypes = new HashSet < > ();
-    recordTypes.add(StringRecord.class);
-    recordTypes.add(LoadClassRecord.class);
-    recordTypes.add(ClassSkipContentRecord.class);
-    recordTypes.add(InstanceSkipContentRecord.class);
-    recordTypes.add(ObjectArraySkipContentRecord.class);
-    recordTypes.add(PrimitiveArraySkipContentRecord.class);
-    recordTypes.add(GcRootRecord.class);
+  private FieldValuesReader createFieldValuesReader(InstanceDumpRecord record) {
+    return new FieldValuesReader(record, getIdentifierByteSize());
+  }
 
-    Hprof.Reader reader = hprof.getReader();
+  private String className(Long classId) {
+    return index.className(classId);
+  }
 
-    int classCount = 0;
-    int instanceCount = 0;
-    int objectArrayCount = 0;
-    int primitiveArrayCount = 0;
-    reader.readHprofRecords(
-      EnumSet.of(LoadClassRecord.class, InstanceSkipContentRecord.class,
-        ObjectArraySkipContentRecord.class, PrimitiveArraySkipContentRecord.class),
-      new OnHprofRecordListener() {
-        @Override
-        public void onHprofRecord(long position, HprofRecord record) {
-          if (record instanceof LoadClassRecord) {
-            classCount++;
-          } else if (record instanceof InstanceSkipContentRecord) {
-            instanceCount++;
-          } else if (record instanceof ObjectArraySkipContentRecord) {
-            objectArrayCount++;
-          } else if (record instanceof PrimitiveArraySkipContentRecord) {
-            primitiveArrayCount++;
-          }
-        }
-      }
-    );
+  private ObjectArrayDumpRecord readObjectArrayDumpRecord(Long objectId, IndexedObjectArray indexedObject) {
+    return readObjectRecord(objectId, indexedObject, new Function < HprofReader, ObjectArrayDumpRecord > () {
 
-    hprof.getReader().moveReaderTo(reader.getStartPosition());
+    });
+  }
 
-    Builder indexBuilderListener = new Builder(
-      reader.getIdentifierByteSize() == 8, hprof.getFileLength(), classCount, instanceCount,
-      objectArrayCount, primitiveArrayCount, indexedGcRootTypes);
+  private int readObjectArrayByteSize(Long objectId, IndexedObjectArray indexedObject) {
+    ObjectRecord cachedRecord = objectCache.get(objectId);
+    if (cachedRecord != null) {
+      return ((ObjectArrayDumpRecord) cachedRecord).getElementIds().size() * getIdentifierByteSize();
+    }
+    hprof.moveReaderTo(indexedObject.getPosition());
+    HprofReader.ThinObjectArrayDumpRecord thinRecord = hprof.getReader().readObjectArraySkipContentRecord();
+    return thinRecord.getSize() * thinRecord.getType().getByteSize();
+  }
 
-    reader.readHprofRecords(recordTypes, indexBuilderListener);
+  private PrimitiveArrayDumpRecord readPrimitiveArrayDumpRecord(Long objectId, IndexedPrimitiveArray indexedObject) {
+    return readObjectRecord(objectId, indexedObject, new Function < HprofReader, PrimitiveArrayDumpRecord > () {
 
-    return indexBuilderListener.buildIndex(proguardMapping);
+    });
+  }
+
+  private int readPrimitiveArrayByteSize(Long objectId, IndexedPrimitiveArray indexedObject) {
+    ObjectRecord cachedRecord = objectCache.get(objectId);
+    if (cachedRecord != null) {
+      return getPrimitiveArrayByteSize((PrimitiveArrayDumpRecord) cachedRecord);
+    }
+    hprof.moveReaderTo(indexedObject.getPosition());
+    HprofReader.ThinPrimitiveArrayDumpRecord thinRecord = hprof.getReader().readPrimitiveArraySkipContentRecord();
+    return thinRecord.getSize() * thinRecord.getType().getByteSize();
+  }
+
+  private ClassDumpRecord readClassDumpRecord(Long objectId, IndexedClass indexedObject) {
+    return readObjectRecord(objectId, indexedObject, new Function < HprofReader, ClassDumpRecord > () {
+
+    });
+  }
+
+  private InstanceDumpRecord readInstanceDumpRecord(Long objectId, IndexedInstance indexedObject) {
+    return readObjectRecord(objectId, indexedObject, new Function < HprofReader, InstanceDumpRecord > () {
+
+    });
+  }
+
+  private T readObjectRecord(Long objectId, IndexedObject indexedObject, Function < HprofReader, T > readBlock) {
+    ObjectRecord objectRecordOrNull = objectCache.get(objectId);
+    if (objectRecordOrNull != null) {
+      return (T) objectRecordOrNull;
+    }
+    hprof.moveReaderTo(indexedObject.getPosition());
+    return readBlock.apply(hprof.getReader());
+  }
+
+
+  private HeapObject wrapIndexedObject(IndexedObject indexedObject, Long objectId) {
+    if (indexedObject instanceof IndexedClass) {
+      return new HeapClass(this, (IndexedClass) indexedObject, objectId);
+    } else if (indexedObject instanceof IndexedInstance) {
+      boolean isPrimitiveWrapper = index.getPrimitiveWrapperTypes().contains(((IndexedInstance) indexedObject).getClassId());
+      return new HeapInstance(this, (IndexedInstance) indexedObject, objectId, isPrimitiveWrapper);
+    } else if (indexedObject instanceof IndexedObjectArray) {
+      boolean isPrimitiveWrapperArray = index.getPrimitiveWrapperTypes().contains(((IndexedObjectArray) indexedObject).getArrayClassId());
+      return new HeapObjectArray(this, (IndexedObjectArray) indexedObject, objectId, isPrimitiveWrapperArray);
+    } else if (indexedObject instanceof IndexedPrimitiveArray) {
+      return new HeapPrimitiveArray(this, (IndexedPrimitiveArray) indexedObject, objectId);
+    } else {
+      throw new IllegalArgumentException("Unsupported indexed object type: " + indexedObject.getClass());
+    }
+  }
+
+  public static HeapGraph indexHprof(Hprof hprof, ProguardMapping proguardMapping, Set < Class > indexedGcRootTypes) {
+    HprofHeapGraphIndex index = HprofInMemoryIndex.createReadingHprof(hprof, proguardMapping, indexedGcRootTypes);
+    return new HprofHeapGraph(hprof, index);
   }
 }
